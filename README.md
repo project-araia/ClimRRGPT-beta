@@ -1,5 +1,5 @@
-# callm
-Climate Action Through Large Language Models
+# ClimRRGPT-beta
+
 
 ## Pre-requisites
 
