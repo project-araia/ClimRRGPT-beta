@@ -1,14 +1,18 @@
-import faiss
 import numpy as np
 import pickle
+from usearch.index import Index
 
-# Convert embeddings to float32 for FAISS
-document_embeddings = pickle.load(open('./data/document_embeddings.pkl', 'rb'))
+# Load embeddings
+document_embeddings = pickle.load(open('./src/literature/data/document_embeddings.pkl', 'rb'))
 document_embeddings = document_embeddings.astype(np.float32)
 
-# Initialize FAISS index
-d = document_embeddings.shape[1]  # Dimension of vectors
-index = faiss.IndexFlatL2(d)  # Using the L2 distance metric
-index.add(document_embeddings)  # Add vectors to the index
-faiss.write_index(index, './data/wildfire_index.bin')
+# Dimension of vectors
+d = document_embeddings.shape[1]
 
+# Build a USearch HNSW index (cosine distance matches sentence-transformer norms well)
+index = Index(ndim=d, metric='cos')
+index.add(np.arange(len(document_embeddings)), document_embeddings)
+
+# Save to disk
+index.save('./src/literature/data/climate_index.usearch')
+print(f"Index built with {len(index)} vectors of dimension {d}.")

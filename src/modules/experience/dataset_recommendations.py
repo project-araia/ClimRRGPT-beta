@@ -4,10 +4,9 @@ from src.llms import OpenSourceModels
 import json
 from copy import deepcopy
 import re
-from st_pages import add_page_title
+import os
 from src.modules.experience.util import format_to_json
 
-add_page_title(layout="wide", initial_sidebar_state="collapsed")
 
 st.session_state.config = load_config("src/modules/experience/dataset_recommendations.yml")
 available_datasets = load_config("./src/modules/experience/dataset_description.yml")['available_datasets']

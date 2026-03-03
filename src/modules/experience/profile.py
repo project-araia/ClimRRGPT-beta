@@ -1,9 +1,7 @@
 import streamlit as st
 from src.llms import OpenSourceModels
 from src.utils import stream_static_text, load_config
-from st_pages import add_page_title
-
-add_page_title(initial_sidebar_state="collapsed")
+import os
 
 # Load config once
 st.session_state.config = load_config("./src/modules/experience/profile.yml")

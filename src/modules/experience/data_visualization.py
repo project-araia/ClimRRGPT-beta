@@ -13,8 +13,7 @@ import json
 import io
 import contextlib
 from geopy.geocoders import Nominatim
-from st_pages import add_page_title
-add_page_title(layout="wide", initial_sidebar_state="collapsed")
+
 
 config = load_config("./src/modules/experience/data_visualization.yml")
 dataset_description = load_config("./src/modules/experience/dataset_description.yml")['available_datasets']

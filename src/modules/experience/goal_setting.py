@@ -1,12 +1,12 @@
 import streamlit as st
 from src.llms import OpenSourceModels
 from src.utils import stream_static_text, load_config
-from st_pages import add_page_title
 import json
 from src.modules.experience.util import format_to_json
 import re
+import os
 
-add_page_title(initial_sidebar_state="collapsed", layout="wide")
+
 
 st.session_state.config = load_config("./src/modules/experience/goal_setting.yml")
 available_datasets = load_config("./src/modules/experience/dataset_description.yml")['available_datasets']

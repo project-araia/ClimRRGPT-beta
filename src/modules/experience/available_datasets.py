@@ -1,8 +1,8 @@
 import streamlit as st
 from src.utils import load_config
-from st_pages import add_page_title
+import os
 
-add_page_title(layout="wide")
+
 
 st.session_state.config = load_config("./src/modules/experience/dataset_description.yml")
 available_datasets = st.session_state.config['available_datasets']

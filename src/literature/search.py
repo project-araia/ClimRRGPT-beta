@@ -1,5 +1,9 @@
 import pandas as pd
 import requests
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from usearch.index import Index
+
 
 def get_doi_by_title(title):
     # URL for the Crossref API
@@ -26,25 +30,25 @@ def get_doi_by_title(title):
         return "Failed to fetch data"
 
 # Load data
-df = pd.read_csv('./data/wildfire_literature.csv')
+df = pd.read_csv('./src/literature/data/climate_ID_600k_label.csv')
 df['combined_text'] = df['title'] + ' ' + df['abstract'] + ' ' + df['field']
-
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
-
-
-# Initialize FAISS index
-index = faiss.read_index("./data/wildfire_index.bin")
 
 # Load a sentence transformer model
 model = SentenceTransformer('all-MiniLM-L6-v2', device='mps')
 
+# Load the USearch index
+index = Index(ndim=384, metric='cos')
+index.load('./src/literature/data/climate_index.usearch')
+
+
 def search(query, k=5):
     query_vector = model.encode([query]).astype(np.float32)
-    _, indices = index.search(query_vector, k)
-    return df.iloc[indices[0]].reset_index(drop=True)
-    
+    matches = index.search(query_vector, k)
+    # matches.keys contains the integer row indices we stored at build time
+    indices = matches.keys.flatten().tolist()
+    return df.iloc[indices].reset_index(drop=True)
+
+
 def get_author(authors_str):
     import ast
     authors = ast.literal_eval(authors_str)
