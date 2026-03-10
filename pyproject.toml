@@ -25,11 +25,15 @@ platforms = ["osx-arm64", "linux-64"]
 [tool.pixi.pypi-dependencies]
 climrrgpt = { path = ".", editable = true }
 usearch = ">=2.16.0"
+globus-sdk = ">=3.45.0"
+python-dotenv = ">=1.0.1"
+deepagents = ">=0.4.7"
+langchain-openai = ">=0.3.7"
 
 [tool.pixi.tasks]
 
 [tool.pixi.dependencies]
-python = ">=3.14.3,<3.15"
+python = ">=3.12,<3.13"
 openai = ">=2.24.0,<3"
 pytorch = ">=2.10.0,<3"
 geopandas = ">=1.1.2,<2"
@@ -48,3 +52,4 @@ ollama-python = ">=0.6.1,<0.7"
 streamlit-folium = ">=0.26.2,<0.27"
 sentence-transformers = ">=5.2.3,<6"
 numpy = ">=2.4.2,<3"
+uv = ">=0.10.9,<0.11"

@@ -111,35 +111,75 @@ else:
     # ── Chat interface — always visible once questions_done ─────────────────
     st.markdown("#### Chat with Literature Review Assistant")
 
+    # Initialize Registry
+    if "agent_registry" not in st.session_state:
+        from src.agents.registry import AgentRegistry
+        from src.agents.demo_agents import register_demo_agents
+        reg = AgentRegistry()
+        register_demo_agents(reg)
+        st.session_state.agent_registry = reg
+
+    # Initialize Persistence
+    if "chat_history" not in st.session_state:
+        from src.agents.history import ChatHistory
+        # Provide a static session_id for now; could be based on user profile later
+        st.session_state.chat_history = ChatHistory(session_id="literature_chat")
+        
+        # Reload past messages from SQLite into the Streamlit session state
+        loaded_msgs = st.session_state.chat_history.load_messages()
+        st.session_state.qa_messages = loaded_msgs
+
+    # UI: Clear History Button
+    col1, col2 = st.columns([4, 1])
+    with col2:
+        if st.button("🗑️ Clear Chat History", use_container_width=True):
+            st.session_state.chat_history.clear()
+            st.session_state.qa_messages = []
+            st.rerun()
+
     if "literature_review_summary" not in st.session_state:
         st.info("💡 The literature review is still in progress above. You can already start chatting — relevant papers will be retrieved live for each message.")
 
     for message in st.session_state.qa_messages:
         with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+            content = message["content"]
+            agent = message.get("agent_name", "default")
+            if agent != "default":
+                st.markdown(f"*(🤖 via {agent})*\n\n{content}")
+            else:
+                st.markdown(content)
 
     if prompt := st.chat_input("How can I help you?"):
         st.chat_message("user").markdown(prompt)
-        st.session_state.qa_messages.append({"role": "user", "content": prompt})
+        
+        # Save user message to memory & DB
+        msg_obj = {"role": "user", "content": prompt, "agent_name": "default"}
+        st.session_state.qa_messages.append(msg_obj)
+        st.session_state.chat_history.save_message("user", prompt, "default")
 
-        # Per-message RAG: retrieve papers relevant to THIS specific prompt
-        with st.spinner("Searching literature..."):
-            retrieved_for_prompt, _ = literature_search(prompt)
+        from src.llms import route_and_respond
+        
+        # To match the expected Ollama message format, strip out 'agent_name' for the raw context
+        clean_history = [
+            {"role": m["role"], "content": m["content"]} 
+            for m in st.session_state.qa_messages[:-1]  # Exclude the prompt just added
+        ]
 
-        rag_injection = {
-            "role": "system",
-            "content": (
-                "The following papers were retrieved from the climate literature database "
-                "as relevant to the user's current question. Use them to ground your answer:\n\n"
-                f"{retrieved_for_prompt}"
-            )
-        }
+        # Use the multi-agent router
+        response, agent_name = route_and_respond(
+            prompt=prompt,
+            history=clean_history,
+            registry=st.session_state.agent_registry,
+            context=st.session_state.context,
+            get_response_fn=get_response,
+        )
 
-        with st.chat_message("assistant"):
-            response = get_response(
-                # base context + live retrieval for this turn + chat history
-                messages=st.session_state.context + [rag_injection] + st.session_state.qa_messages,
-                stream=True,
-                options={"top_p": 0.9, "max_tokens": 2048, "temperature": 0.7}
-            )
-        st.session_state.qa_messages.append({"role": "assistant", "content": response})
+        # Save assistant message to memory & DB
+        st.session_state.qa_messages.append({
+            "role": "assistant", 
+            "content": response, 
+            "agent_name": agent_name
+        })
+        st.session_state.chat_history.save_message("assistant", response, agent_name)
+
+        st.rerun()
