@@ -1,138 +1,101 @@
-import pandas as pd
-import requests
+import os
+import json
 import numpy as np
+import pickle
+import requests
 from sentence_transformers import SentenceTransformer
 from usearch.index import Index
 
+# Configuration
+DATA_DIR = './src/literature/data/data/titanv_all_terms_results_v2_2026-03-26_12:13:28_sectionized'
+MAPPING_PATH = './src/literature/data/id_to_paper_id.pkl'
+INDEX_PATH = './src/literature/data/climate_index.usearch'
 
-def get_doi_by_title(title):
-    # URL for the Crossref API
-    url = "https://api.crossref.org/works"
-
-    # Parameters for the request, including the title to search for
-    params = {"query.title": title}
-
-    # Make the request
-    response = requests.get(url, params=params)
-
-    # Check if the request was successful
-    if response.status_code == 200:
-        # Parse the JSON response
-        data = response.json()
-        items = data.get("message", {}).get("items", [])
-
-        if items:
-            # Assuming the first result is the most relevant, extract its DOI
-            return items[0].get("DOI")
-        else:
-            return "No results found"
-    else:
-        return "Failed to fetch data"
-
-# Load data
-df = pd.read_csv('./src/literature/data/climate_ID_600k_label.csv')
-df['combined_text'] = df['title'] + ' ' + df['abstract'] + ' ' + df['field']
+# Load mapping and index
+with open(MAPPING_PATH, 'rb') as f:
+    id_to_paper_id = pickle.load(f)
 
 # Load a sentence transformer model
 model = SentenceTransformer('all-MiniLM-L6-v2', device='mps')
 
 # Load the USearch index
 index = Index(ndim=384, metric='cos')
-index.load('./src/literature/data/climate_index.usearch')
+index.load(INDEX_PATH)
 
+def get_doi_by_title(title):
+    url = "https://api.crossref.org/works"
+    params = {"query.title": title}
+    try:
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            items = data.get("message", {}).get("items", [])
+            if items:
+                return items[0].get("DOI")
+    except Exception:
+        pass
+    return "No results found"
 
 def search(query, k=5):
     query_vector = model.encode([query]).astype(np.float32)
     matches = index.search(query_vector, k)
-    # matches.keys contains the integer row indices we stored at build time
+    
+    # matches.keys contains the index positions
     indices = matches.keys.flatten().tolist()
-    return df.iloc[indices].reset_index(drop=True)
+    
+    results = []
+    for idx in indices:
+        paper_id = id_to_paper_id[idx]
+        json_path = os.path.join(DATA_DIR, f"{paper_id}.json")
+        
+        if os.path.exists(json_path):
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+            data['paper_id'] = paper_id
+            results.append(data)
+            
+    return results
 
-
-def get_author(authors_str):
-    import ast
-    authors = ast.literal_eval(authors_str)
-    if len(authors) > 3:
-        # Use et al. for more than three authors
-        formatted = f"{authors[0]['first']} {authors[0]['last']} et al."
-    else:
-        # Join all authors' names
-        formatted = ', '.join(f"{author['first']} {author['last']}" for author in authors)
-    return formatted
-
-
-def MLA_citation(title, authors, year, doi):
+def MLA_citation(title, doi):
     '''
-    input: 
-        title: the title of the paper
-        authors: the authors of the paper
-        year: the year of publication
-        doi: the doi of the paper
-    output:
-        a string containing the MLA citation of the paper
+    Generates a simplified MLA citation omitting authors and year as they are not present in current source.
     '''
-    authors = get_author(authors)
-    if doi != 'No results found' and doi != 'Failed to fetch data':
-        return f"{authors}. \"{title}.\" {year}. {doi}"
+    if doi != 'No results found' and doi != 'Failed to fetch data' and doi:
+        return f"\"{title}.\" {doi}"
     else:
-        return f"{authors}. \"{title}.\" {year}."
-
+        return f"\"{title}.\""
 
 def literature_search(query):
-    '''
-    input: 
-        query: the query to search for. For example, 'What is the relationship between climate change and wildfire?'
-    output:
-        a string containing the titles and abstracts of the 3 most relevant papers
-    '''
-    results = search(query).to_dict('records')
-    for _, result in enumerate(results):
+    results = search(query, k=3)
+    
+    for result in results:
         result['doi'] = get_doi_by_title(result['title'])
-        # check if title of doi matches title of result
+        # Simplified DOI validation for the temporary build
         if result['doi'] != 'No results found' and result['doi'] != 'Failed to fetch data':
-            # use crossref to get the title of the doi
-            url = f"https://api.crossref.org/works/{result['doi']}"
-            response = requests.get(url)
-            if response.status_code == 200:
-                data = response.json()
-                title = data.get("message", {}).get("title", [])
-                if title:
-                    # use model to check if title matches
-                    title = title[0]
-                    title_vector = model.encode([title]).astype(np.float32)
-                    result_vector = model.encode([result['title']]).astype(np.float32)
-                    similarity = np.dot(title_vector, result_vector.T)
-
-                    # check if author matches
-                    author = data.get("message", {}).get("author", [])
-                    if author:
-                        try:
-                            author = author[0]['family']
-                        except:
-                            author = author[0]['name']
-                        if author.lower() not in result['authors'].lower():
-                            similarity = 0
-                    if similarity < 0.8:
-                        result['doi'] = 'No results found'
-                    else:
-                        result['doi'] = f"https://doi.org/{result['doi']}"
-            else:
-                result['doi'] = 'Failed to fetch data'
+            result['doi'] = f"https://doi.org/{result['doi']}"
     
     message = ""
     references = []
-    for i, result in enumerate(results):
-        message += f"Title: {result['title']}\n\n"
-        message += f"Authors: {get_author(result['authors'])}\n\n"
-        message += f"Year: {result['year']}\n\n"
-        if result['doi'] != 'No results found' and result['doi'] != 'Failed to fetch data':
-            message += f"DOI: {result['doi']}\n\n"
-        message += f"Abstract: {result['abstract']}\n\n"
-        references.append(f"{MLA_citation(result['title'], result['authors'], result['year'], result['doi'])}\n\n")
+    for result in results:
+        message += f"Title: {result.get('title', 'Unknown Title')}\n\n"
+        
+        # Sections handling - skip title and abstract for specific section listing
+        sections = {k: v for k, v in result.items() if k not in ['title', 'abstract', 'paper_id', 'doi']}
+        
+        if 'abstract' in result:
+            message += f"Abstract: {result['abstract']}\n\n"
+            
+        for sec_title, sec_content in sections.items():
+            message += f"{sec_title}: {sec_content}\n\n"
+            
+        references.append(f"{MLA_citation(result.get('title'), result.get('doi'))}\n\n")
         
     return message, references
 
 if __name__ == "__main__":
     query = "wildfire mitigation strategies for bridge construction in wildfire-prone areas"
-    results = literature_search(query)
-    print(results)
+    msg, refs = literature_search(query)
+    print("SEARCH RESULTS:\n")
+    print(msg)
+    print("REFERENCES:\n")
+    print("".join(refs))

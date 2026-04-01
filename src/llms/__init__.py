@@ -26,9 +26,13 @@ class OpenAI(ChatCompletion):
         load_dotenv()
         
         self.model = model or os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b")
+        # self.client = OpenAIClient(
+        #     api_key=get_access_token(),
+        #     base_url="https://inference-api.alcf.anl.gov/resource_server/sophia/vllm/v1",
+        # )
         self.client = OpenAIClient(
-            api_key=get_access_token(),
-            base_url="https://inference-api.alcf.anl.gov/resource_server/sophia/vllm/v1",
+            api_key="jnavarro",
+            base_url="https://apps.inside.anl.gov/argoapi/v1",
         )
 
     def get_response(self, messages, options=None, content=True, stream=False, stream_handler=None):
