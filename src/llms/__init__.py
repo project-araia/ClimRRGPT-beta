@@ -15,91 +15,91 @@ class ChatCompletion(ABC):
         pass
 
 
-class OpenAI(ChatCompletion):
-    def __init__(self, model=None, **args):
-        super().__init__(**args)
-        import os
-        from openai import OpenAI as OpenAIClient
-        from inference_auth_token import get_access_token
-        from dotenv import load_dotenv
+# class OpenAI(ChatCompletion):
+#     def __init__(self, model=None, **args):
+#         super().__init__(**args)
+#         import os
+#         from openai import OpenAI as OpenAIClient
+#         from inference_auth_token import get_access_token
+#         from dotenv import load_dotenv
 
-        load_dotenv()
+#         load_dotenv()
         
-        self.model = model or os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b")
-        self.client = OpenAIClient(
-            api_key=get_access_token(),
-            base_url="https://inference-api.alcf.anl.gov/resource_server/sophia/vllm/v1",
-        )
+#         self.model = model or os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b")
+#         self.client = OpenAIClient(
+#             api_key=get_access_token(),
+#             base_url="https://inference-api.alcf.anl.gov/resource_server/sophia/vllm/v1",
+#         )
 
-    def get_response(self, messages, options=None, content=True, stream=False, stream_handler=None):
-        if options is None:
-            options = {}
+#     def get_response(self, messages, options=None, content=True, stream=False, stream_handler=None):
+#         if options is None:
+#             options = {}
             
-        # Flatten messages to ensure content is a string for vLLM
-        flat_messages = []
-        for msg in messages:
-            content_val = msg.get("content", "")
-            if isinstance(content_val, list):
-                text_pieces = []
-                for chunk in content_val:
-                    if isinstance(chunk, str):
-                        text_pieces.append(chunk)
-                    elif isinstance(chunk, dict) and chunk.get("type") == "text":
-                        text_pieces.append(chunk.get("text", ""))
-                flat_messages.append({**msg, "content": "\n".join(text_pieces)})
-            else:
-                flat_messages.append(msg)
-        messages = flat_messages
+#         # Flatten messages to ensure content is a string for vLLM
+#         flat_messages = []
+#         for msg in messages:
+#             content_val = msg.get("content", "")
+#             if isinstance(content_val, list):
+#                 text_pieces = []
+#                 for chunk in content_val:
+#                     if isinstance(chunk, str):
+#                         text_pieces.append(chunk)
+#                     elif isinstance(chunk, dict) and chunk.get("type") == "text":
+#                         text_pieces.append(chunk.get("text", ""))
+#                 flat_messages.append({**msg, "content": "\n".join(text_pieces)})
+#             else:
+#                 flat_messages.append(msg)
+#         messages = flat_messages
 
-        kwargs = {}
-        if "temperature" in options: kwargs["temperature"] = options["temperature"]
-        if "max_tokens" in options: kwargs["max_tokens"] = options["max_tokens"]
-        if "top_p" in options: kwargs["top_p"] = options["top_p"]
+#         kwargs = {}
+#         if "temperature" in options: kwargs["temperature"] = options["temperature"]
+#         if "max_tokens" in options: kwargs["max_tokens"] = options["max_tokens"]
+#         if "top_p" in options: kwargs["top_p"] = options["top_p"]
 
-        if stream:
-            response_stream = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                stream=True,
-                **kwargs
-            )
-            response = ''
-            if stream_handler:
-                def adapter_stream():
-                    for chunk in response_stream:
-                        if chunk.choices and chunk.choices[0].delta.content is not None:
-                            yield {"message": {"content": chunk.choices[0].delta.content}}
-                response = stream_handler(adapter_stream())
-            else:
-                message_placeholder = st.empty()
-                for chunk in response_stream:
-                    if chunk.choices and chunk.choices[0].delta.content is not None:
-                        content_piece = chunk.choices[0].delta.content
-                        response += content_piece
-                        if "<think>" in response:
-                            message_placeholder.markdown("LLM is thinking...")
-                            if "</think>" in response:
-                                response_clean = response.split("</think>")[1]
-                                message_placeholder.markdown(response_clean)
-                        else:
-                            message_placeholder.markdown(response)
-            return response
-        else:
-            response_obj = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                stream=False,
-                **kwargs
-            )
-            if content:
-                return response_obj.choices[0].message.content
-            else:
-                return {
-                    "message": {
-                        "content": response_obj.choices[0].message.content,
-                        "role": response_obj.choices[0].message.role,
-                    }
-                }
+#         if stream:
+#             response_stream = self.client.chat.completions.create(
+#                 model=self.model,
+#                 messages=messages,
+#                 stream=True,
+#                 **kwargs
+#             )
+#             response = ''
+#             if stream_handler:
+#                 def adapter_stream():
+#                     for chunk in response_stream:
+#                         if chunk.choices and chunk.choices[0].delta.content is not None:
+#                             yield {"message": {"content": chunk.choices[0].delta.content}}
+#                 response = stream_handler(adapter_stream())
+#             else:
+#                 message_placeholder = st.empty()
+#                 for chunk in response_stream:
+#                     if chunk.choices and chunk.choices[0].delta.content is not None:
+#                         content_piece = chunk.choices[0].delta.content
+#                         response += content_piece
+#                         if "<think>" in response:
+#                             message_placeholder.markdown("LLM is thinking...")
+#                             if "</think>" in response:
+#                                 response_clean = response.split("</think>")[1]
+#                                 message_placeholder.markdown(response_clean)
+#                         else:
+#                             message_placeholder.markdown(response)
+#             return response
+#         else:
+#             response_obj = self.client.chat.completions.create(
+#                 model=self.model,
+#                 messages=messages,
+#                 stream=False,
+#                 **kwargs
+#             )
+#             if content:
+#                 return response_obj.choices[0].message.content
+#             else:
+#                 return {
+#                     "message": {
+#                         "content": response_obj.choices[0].message.content,
+#                         "role": response_obj.choices[0].message.role,
+#                     }
+#                 }
 
 class OpenSourceModels(ChatCompletion):
     def __init__(self, model, **args):
