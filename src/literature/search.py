@@ -3,13 +3,20 @@ import json
 import numpy as np
 import pickle
 import requests
+from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from usearch.index import Index
 
-# Configuration
-DATA_DIR = './src/literature/data/data/titanv_all_terms_results_v2_2026-03-26_12:13:28_sectionized'
-MAPPING_PATH = './src/literature/data/id_to_paper_id.pkl'
-INDEX_PATH = './src/literature/data/climate_index.usearch'
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from utils import find_json_path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent.parent
+
+DATA_DIR = REPO_ROOT / 'src' / 'literature' / 'data' / 'data' / 'resilience_dataset_3-30'
+MAPPING_PATH = REPO_ROOT / 'src' / 'literature' / 'data' / 'id_to_paper_id.pkl'
+INDEX_PATH = REPO_ROOT / 'src' / 'literature' / 'data' / 'database.usearch'
 
 # Load mapping and index
 with open(MAPPING_PATH, 'rb') as f:
@@ -40,16 +47,15 @@ def search(query, k=5):
     query_vector = model.encode([query]).astype(np.float32)
     matches = index.search(query_vector, k)
     
-    # matches.keys contains the index positions
     indices = matches.keys.flatten().tolist()
     
     results = []
     for idx in indices:
         paper_id = id_to_paper_id[idx]
-        json_path = os.path.join(DATA_DIR, f"{paper_id}.json")
+        json_path = find_json_path(paper_id, DATA_DIR)
         
-        if os.path.exists(json_path):
-            with open(json_path, 'r') as f:
+        if json_path.exists():
+            with open(json_path, 'r', encoding='utf-8', errors='ignore') as f:
                 data = json.load(f)
             data['paper_id'] = paper_id
             results.append(data)
@@ -69,7 +75,10 @@ def literature_search(query):
     results = search(query, k=3)
     
     for result in results:
-        result['doi'] = get_doi_by_title(result['title'])
+        try:
+            result['doi'] = get_doi_by_title(result['title'])
+        except Exception:
+            result['doi'] = 'Failed to fetch data'
         # Simplified DOI validation for the temporary build
         if result['doi'] != 'No results found' and result['doi'] != 'Failed to fetch data':
             result['doi'] = f"https://doi.org/{result['doi']}"
@@ -93,7 +102,7 @@ def literature_search(query):
     return message, references
 
 if __name__ == "__main__":
-    query = "wildfire mitigation strategies for bridge construction in wildfire-prone areas"
+    query = "coastal flooding"
     msg, refs = literature_search(query)
     print("SEARCH RESULTS:\n")
     print(msg)

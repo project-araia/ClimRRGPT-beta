@@ -2,6 +2,9 @@
 data/
 temp_images/
 ollama-data/
+**/data/
+**.db
+**.usearch
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

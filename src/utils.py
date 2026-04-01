@@ -1,5 +1,7 @@
+import os
 import yaml
 import time
+from pathlib import Path
 import streamlit as st
 TEXT_CURSOR = "▕"
 
@@ -33,3 +35,23 @@ def create_text_stream(text):
 def stream_static_text(text):
     stream_text = create_text_stream(text)
     st.write_stream(stream_text)
+
+def get_file_list(data_dir, limit=None):
+    shard_dirs = sorted([d for d in os.listdir(data_dir) if d.isdigit()])
+    files = []
+    for shard in shard_dirs:
+        shard_files = [os.path.join(shard, f) for f in os.listdir(data_dir / shard) if f.endswith('.json')]
+        files.extend(shard_files)
+    files = sorted(files)
+    if limit:
+        files = files[:limit]
+    return files
+
+def find_json_path(paper_id, data_dir):
+    json_file = f"{paper_id}.json"
+    shard_dirs = sorted([d for d in os.listdir(data_dir) if d.isdigit()])
+    for shard in shard_dirs:
+        path = data_dir / shard / json_file
+        if path.exists():
+            return path
+    return data_dir / json_file
