@@ -1,9 +1,16 @@
 import os
 import yaml
 import time
+import sys
 from pathlib import Path
 import streamlit as st
 TEXT_CURSOR = "▕"
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+DATA_DIR = REPO_ROOT / 'src' / 'literature' / 'data' / 'data' / 'resilience_dataset_4-1'
 
 def load_config(path):
     """

@@ -9,14 +9,10 @@ from usearch.index import Index
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-from utils import find_json_path
+from src.utils import find_json_path, DATA_DIR
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent.parent
-
-DATA_DIR = REPO_ROOT / 'src' / 'literature' / 'data' / 'data' / 'resilience_dataset_3-30'
-MAPPING_PATH = REPO_ROOT / 'src' / 'literature' / 'data' / 'id_to_paper_id.pkl'
-INDEX_PATH = REPO_ROOT / 'src' / 'literature' / 'data' / 'database.usearch'
+MAPPING_PATH = DATA_DIR.parent.parent / 'id_to_paper_id.pkl'
+INDEX_PATH = DATA_DIR.parent.parent / 'database.usearch'
 
 # Load mapping and index
 with open(MAPPING_PATH, 'rb') as f:
@@ -95,7 +91,7 @@ def literature_search(query):
             message += f"Abstract: {result['abstract']}\n\n"
             
         for sec_title, sec_content in sections.items():
-            message += f"{sec_title}: {sec_content}\n\n"
+            message += f"**{sec_title}**:\n {sec_content}\n\n"
             
         references.append(f"{MLA_citation(result.get('title'), result.get('doi'))}\n\n")
         

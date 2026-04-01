@@ -35,12 +35,14 @@ def _make_literature_handler():
     """Lazily import literature_search to avoid loading the model at module import."""
     def handler(message: str, history: list[dict]) -> str:
         from src.literature.search import literature_search
-        retrieved, _ = literature_search(message)
+        retrieved, references = literature_search(message)
         if not retrieved.strip():
-            return "I searched the climate literature database but couldn't find closely relevant papers for that query."
+            return "I searched the literature database but couldn't find closely relevant papers for that query."
         return (
-            "📚 I searched the climate literature database and found these relevant papers:\n\n"
+            "📚 I searched the literature database and found these relevant papers:\n\n"
             + retrieved
+            + "\n\n**References:**\n\n"
+            + "".join(references)
         )
     return handler
 

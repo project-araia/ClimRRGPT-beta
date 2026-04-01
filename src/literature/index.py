@@ -10,16 +10,12 @@ import argparse
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from utils import get_file_list
+from src.utils import get_file_list, DATA_DIR
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent.parent
-
-DEFAULT_DATA_DIR = REPO_ROOT / 'src' / 'literature' / 'data' / 'data' / 'resilience_dataset_4-1'
 DEFAULT_LIMIT = 100000
 
 parser = argparse.ArgumentParser(description='Build USearch index from sectionized JSON files.')
-parser.add_argument('--data_dir', type=str, default=str(DEFAULT_DATA_DIR), help='Path to the directory containing sectionized JSON files')
+parser.add_argument('--data_dir', type=str, default=str(DATA_DIR), help='Path to the directory containing sectionized JSON files')
 parser.add_argument('--limit', type=int, default=DEFAULT_LIMIT, help='Number of documents to index')
 args = parser.parse_args()
 
