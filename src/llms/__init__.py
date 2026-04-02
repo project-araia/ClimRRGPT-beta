@@ -64,7 +64,7 @@ class LangChainModelAdapter(ChatCompletion):
     A unified adapter that uses LangChain's Chat models but exposes the
     get_response() interface used by the Streamlit experiences.
     """
-    def __init__(self, provider: Optional[str] = None, model_name: Optional[str] = None, **kwargs):
+    def __init__(self, provider: Optional[str] = None, model_name: Optional[str] = None, api_key: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
         
         # Backward compatibility for 'model' kwarg
@@ -73,17 +73,26 @@ class LangChainModelAdapter(ChatCompletion):
             
         self.provider = provider or "Local"
         self.model_name = model_name or "qwen3.5:latest"
+        self.api_key = api_key
         
-        if self.provider == "External":
+        if self.provider == "ALCF":
             self.model = FlatteningChatOpenAI(
-                model=model_name,
+                model=self.model_name,
                 api_key=get_access_token(),
                 base_url="https://inference-api.alcf.anl.gov/resource_server/sophia/vllm/v1",
                 streaming=True
             )
-        else:
+        elif self.provider == "OpenAI":
+            # Prioritize the UI-pasted key, then environment variables
+            effective_key = self.api_key or os.getenv("OPENAI_API_KEY")
+            self.model = FlatteningChatOpenAI(
+                model=self.model_name,
+                api_key=effective_key,
+                streaming=True
+            )
+        else: # Local
             self.model = ChatOllama(
-                model=model_name,
+                model=self.model_name,
                 streaming=True
             )
 
@@ -151,6 +160,7 @@ def get_default_llm(state: st.session_state) -> Any:
     Defaults to Local Ollama if no settings are found.
     """
     provider = state.get("llm_provider", "Local")
+    api_key = state.get("custom_api_key")
     
     # Fallback to config['model'] if session state is empty (e.g. first load)
     default_model = "qwen3.5:latest"
@@ -160,7 +170,7 @@ def get_default_llm(state: st.session_state) -> Any:
     model_name = state.get("llm_model_name", default_model)
     
     # Instantiate the unified adapter
-    adapter = LangChainModelAdapter(provider=provider, model_name=model_name)
+    adapter = LangChainModelAdapter(provider=provider, model_name=model_name, api_key=api_key)
     return adapter.get_response
 
 
