@@ -62,7 +62,7 @@ literature_agent = Agent(
         r"\bscientific\b",
     ],
     handler=_make_literature_handler(),
-    description="Routes literature/research queries to the climate paper vector index.",
+    description="Routes literature/research queries to the resilience paper vector index.",
 )
 
 
@@ -84,6 +84,7 @@ deep_reasoning_agent = Agent(
         r"\bdeep\b",
         r"\breasoning\b",
         r"\bcomplex\b",
+        r"\bexplain\b",
     ],
     handler=_make_deep_agent_handler(),
     description="Complex multi-step reasoning agent using a 120b model.",

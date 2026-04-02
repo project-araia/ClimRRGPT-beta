@@ -7,7 +7,7 @@ Install [Ollama](https://github.com/ollama/ollama).
 
 Once you have installed Ollama, you can run the following command to install Llama 3 language model:
 ```
-ollama run llama3.1:8b-instruct-q4_0
+ollama run qwen3.5:latest 
 ```
 
 We use Python 3.11.6 and [Poetry](https://python-poetry.org/) to manage dependencies. 

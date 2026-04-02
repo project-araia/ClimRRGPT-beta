@@ -1,6 +1,6 @@
 import streamlit as st
 from src.utils import load_config
-from src.llms import OpenSourceModels
+from src.llms import OpenSourceModels, get_default_llm
 import json
 from copy import deepcopy
 import re
@@ -10,8 +10,7 @@ from src.modules.experience.util import format_to_json
 
 st.session_state.config = load_config("src/modules/experience/dataset_recommendations.yml")
 available_datasets = load_config("./src/modules/experience/dataset_description.yml")['available_datasets']
-model = st.session_state.config['model']
-get_response = OpenSourceModels(model=model).get_response
+get_response = get_default_llm(st.session_state)
 
 # only keep description and instructions of each dataset
 

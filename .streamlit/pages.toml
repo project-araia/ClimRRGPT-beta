@@ -44,6 +44,21 @@ name = "Data Visualization"
 icon = "📈"
 
 [[pages]]
+path = "experience/literature_review_demo.py"
+name = "Literature Review Demo"
+icon = "🎯"
+
+[[pages]]
 path = "experience/literature_review.py"
 name = "Literature Review"
 icon = "📚"
+
+[[pages]]
+name = "Settings"
+icon = "⚙️"
+is_section = true
+
+[[pages]]
+path = "modelpicker.py"
+name = "Model Picker"
+icon = "🤖"
