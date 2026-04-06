@@ -28,8 +28,7 @@ initialize_session_state()
 
 if not st.session_state.profile_done:
     st.write("""
-        We're about to craft a custom action plan just for you, but first, we need to know the hero of our story — YOU! 🌟🔥  
-        Click the "Instructions" expander below to discover how to navigate this exciting journey!
+        Please click the "Instructions" expander below for navigation instructions.
     """)
     with st.expander("Instructions"):
         st.write(st.session_state.instruction_message)

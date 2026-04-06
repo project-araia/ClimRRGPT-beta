@@ -117,11 +117,20 @@ class LangChainModelAdapter(ChatCompletion):
         lc_messages = self._convert_messages(messages)
         
         # Merge options (like temperature, etc.) into the call
-        kwargs = {}
-        if options:
-            if "temperature" in options: kwargs["temperature"] = options["temperature"]
-            if "max_tokens" in options: kwargs["max_tokens"] = options["max_tokens"]
-            if "top_p" in options: kwargs["top_p"] = options["top_p"]
+        # Ollama expects these in a nested 'eval_parameters' or 'options' dict via LangChain
+        if self.provider == "Local":
+            ollama_options = {}
+            if options:
+                if options.get("temperature") is not None: ollama_options["temperature"] = options["temperature"]
+                if options.get("top_p") is not None: ollama_options["top_p"] = options["top_p"]
+                if options.get("max_tokens") is not None: ollama_options["num_predict"] = options["max_tokens"]
+            kwargs = {"options": ollama_options}
+        else:
+            kwargs = {}
+            if options:
+                if options.get("temperature") is not None: kwargs["temperature"] = options["temperature"]
+                if options.get("max_tokens") is not None: kwargs["max_tokens"] = options["max_tokens"]
+                if options.get("top_p") is not None: kwargs["top_p"] = options["top_p"]
 
         if stream:
             response = ""

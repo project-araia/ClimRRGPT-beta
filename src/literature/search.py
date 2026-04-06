@@ -101,6 +101,7 @@ def load_resources():
 
         print("Initializing BM25 object...")
         _bm25 = BM25Okapi(_token_corpus)
+        print("Loading complete.")
 
 
 def get_doi_by_title(title):
