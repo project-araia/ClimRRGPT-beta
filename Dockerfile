@@ -47,17 +47,20 @@ RUN pixi install
 # Copy source code
 COPY --chown=${user}:${user} . .
 
-# Expose Streamlit and Ollama ports
-EXPOSE 8501 11434
+# Expose Streamlit (using 8502) and Ollama ports
+EXPOSE 8502 11434
 
 # Use 'pixi run' to ensure the environment is correctly loaded
+# Note: Added 10s sleep for Ollama and fixed port to 8502
 CMD bash -c "ollama serve > /tmp/ollama.log 2>&1 & \
-             sleep 5; \
+             sleep 10; \
+             if ! ollama list > /dev/null 2>&1; then \
+                echo 'Ollama still starting, waiting...'; \
+                sleep 10; \
+             fi; \
              if ! ollama list | grep -q 'qwen3'; then \
                 echo 'Model not found, pulling qwen3...'; \
-                ollama pull qwen3 2>&1 || true; \
-             else \
-                echo 'Model already present, skipping pull.'; \
+                ollama pull qwen3 || true; \
              fi; \
-             echo 'Starting ClimRRGPT-beta via Pixi...'; \
-             pixi run streamlit run src/modules/Welcome.py --server.port=8501 --server.address=0.0.0.0"
+             echo 'Starting ClimRRGPT-beta via Pixi on port 8502...'; \
+             pixi run streamlit run src/modules/Welcome.py --server.port=8502 --server.address=0.0.0.0"

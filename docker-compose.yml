@@ -10,7 +10,7 @@ services:
         user: "${USER:-jnavarro}"
     container_name: araia-container
     ports:
-      - "8501:8501"      # Streamlit
+      - "8502:8502"      # Streamlit
       - "11435:11434"    # Ollama
     volumes:
       - .:/araia         # Mount working dir
