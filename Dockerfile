@@ -37,26 +37,32 @@ RUN mkdir -p /araia && chown -R ${user}:${user} /araia
 USER ${user}
 WORKDIR /araia
 
-# Copy only requirements and source metadata first for caching
+# Move Pixi environment out of the mounted volume to avoid host permission conflicts
+# /home/jnavarro/.pixi will be inside the container's writable filesystem
+ENV PIXI_HOME=/home/${user}/.pixi
+ENV PATH="/home/${user}/.pixi/bin:/usr/local/bin:$PATH"
+
+# Copy Pixi manifest and lockfile
 COPY --chown=${user}:${user} pyproject.toml pixi.lock ./
 COPY --chown=${user}:${user} src/ ./src/
 
-# Install environment
+# Install environment (this will now live in /home/jnavarro/.pixi/envs)
 RUN pixi install
 
-# Copy source code
+# Copy rest of the source code
 COPY --chown=${user}:${user} . .
 
 # Expose Streamlit (using 8502) and Ollama ports
 EXPOSE 8502 11434
 
 # Use 'pixi run' to ensure the environment is correctly loaded
-# Note: Added 10s sleep for Ollama and fixed port to 8502
-CMD bash -c "ollama serve > /tmp/ollama.log 2>&1 & \
-             sleep 10; \
+# Note: Added 15s sleep for Ollama and fixed port to 8502
+CMD bash -c "export PATH=$PATH:/usr/local/bin && \
+             ollama serve > /tmp/ollama.log 2>&1 & \
+             sleep 15; \
              if ! ollama list > /dev/null 2>&1; then \
                 echo 'Ollama still starting, waiting...'; \
-                sleep 10; \
+                sleep 15; \
              fi; \
              if ! ollama list | grep -q 'qwen3'; then \
                 echo 'Model not found, pulling qwen3...'; \
