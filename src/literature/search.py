@@ -80,7 +80,7 @@ def load_resources():
         print(f"Loading dense index (MMAP): {DENSE_PATH.name}...")
         # FAISS supports memory mapping for some index types
         _index = faiss.read_index(
-            str(DENSE_PATH), faiss.IO_FLAG_MMAP | faiss.IO_FLAG_READONLY
+            str(DENSE_PATH), faiss.IO_FLAG_MMAP | faiss.IO_FLAG_READ_ONLY
         )
         _index.nprobe = 32
 
