@@ -40,14 +40,17 @@ WORKDIR /araia
 # Move Pixi environment out of the mounted volume to avoid host permission conflicts
 # /home/jnavarro/.pixi will be inside the container's writable filesystem
 ENV PIXI_HOME=/home/${user}/.pixi
-ENV PATH="/home/${user}/.pixi/bin:/usr/local/bin:$PATH"
+ENV CONDA_PREFIX=/home/${user}/.pixi/envs/default
+ENV PIXI_PROJECT_MANIFEST=/araia/pyproject.toml
+ENV PATH="/home/${user}/.pixi/envs/default/bin:/home/${user}/.pixi/bin:/usr/local/bin:$PATH"
 
 # Copy Pixi manifest and lockfile
 COPY --chown=${user}:${user} pyproject.toml pixi.lock ./
 COPY --chown=${user}:${user} src/ ./src/
 
 # Install environment (this will now live in /home/jnavarro/.pixi/envs)
-RUN pixi install
+# We use --manifest-path to be explicit
+RUN pixi install --manifest-path pyproject.toml
 
 # Copy rest of the source code
 COPY --chown=${user}:${user} . .
@@ -69,4 +72,4 @@ CMD bash -c "export PATH=$PATH:/usr/local/bin && \
                 ollama pull qwen3 || true; \
              fi; \
              echo 'Starting ClimRRGPT-beta via Pixi on port 8502...'; \
-             pixi run streamlit run src/modules/Welcome.py --server.port=8502 --server.address=0.0.0.0"
+             pixi run --manifest-path /araia/pyproject.toml streamlit run src/modules/Welcome.py --server.port=8502 --server.address=0.0.0.0"
