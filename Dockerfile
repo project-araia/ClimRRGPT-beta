@@ -50,7 +50,7 @@ COPY --chown=${user}:${user} src/ ./src/
 
 # Install environment (this will now live in /home/jnavarro/.pixi/envs)
 # We use --manifest-path to be explicit
-RUN pixi install --manifest-path pyproject.toml
+RUN pixi install -a --frozen
 
 # Copy rest of the source code
 COPY --chown=${user}:${user} . .
