@@ -5,7 +5,10 @@ from typing import TYPE_CHECKING, List, Dict, Any, Optional
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
-from inference_auth_token import get_access_token
+try:
+    from inference_auth_token import get_access_token
+except ImportError:
+    get_access_token = lambda: None
 
 if TYPE_CHECKING:
     from src.agents.registry import AgentRegistry
