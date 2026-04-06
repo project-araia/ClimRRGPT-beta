@@ -37,8 +37,9 @@ RUN mkdir -p /araia && chown -R ${user}:${user} /araia
 USER ${user}
 WORKDIR /araia
 
-# Copy only requirements first for caching
+# Copy only requirements and source metadata first for caching
 COPY --chown=${user}:${user} pyproject.toml pixi.lock ./
+COPY --chown=${user}:${user} src/ ./src/
 
 # Install environment
 RUN pixi install
