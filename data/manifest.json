@@ -1,0 +1,37 @@
+{
+  "input_dir": "/data/araia/titanv_convert",
+  "input_files": 705762,
+  "output_dir": "/data/araia/titanv_models",
+  "embedding_model": "Qwen/Qwen3-Embedding-0.6B",
+  "embedding_device": "cuda:1",
+  "embedding_devices": [
+    "cuda:1"
+  ],
+  "chunk_size": 256,
+  "semantic_threshold": 0.85,
+  "overlap_words": 3,
+  "sentence_chunk_weight": 0.5,
+  "semantic_chunk_weight": 0.5,
+  "index_type": "IndexIVFPQ",
+  "metric": "inner_product",
+  "nlist": 256,
+  "nprobe": 32,
+  "train_vecs": 20000,
+  "nbits": 8,
+  "documents_chunked": 705761,
+  "documents_scanned": 705761,
+  "chunks_count": 6108103,
+  "skipped_duplicate_chunks": 3843591,
+  "seen_chunks": 6108103,
+  "dense_vectors": 6108103,
+  "faiss_gpu": true,
+  "sparse_flush_chunks": 200000,
+  "sparse_spill_files": 31,
+  "elapsed_seconds": 25413.82,
+  "climate_only": false,
+  "max_docs": 0,
+  "files": {
+    "dense_faiss": "/data/araia/titanv_models/dense_ivfpq.faiss",
+    "sparse_bm25": "/data/araia/titanv_models/sparse_bm25.pkl"
+  }
+}

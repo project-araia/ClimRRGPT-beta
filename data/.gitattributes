@@ -1,0 +1,2 @@
+dense_ivfpq.faiss filter=lfs diff=lfs merge=lfs -text
+sparse_bm25.pkl filter=lfs diff=lfs merge=lfs -text
