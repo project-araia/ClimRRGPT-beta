@@ -9,8 +9,8 @@ ARG uid=1000
 ARG gid=1000
 ARG user=jnavarro
 
-# Set up working directory
-WORKDIR /araia
+# Set up working directory inside the container, isolated from host mounts
+WORKDIR /app
 
 # Install manual system dependencies
 RUN apt-get update && apt-get install -y \
@@ -30,27 +30,21 @@ RUN groupadd -g ${gid} ${user} \
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | bash
 
-# Set up Pixi directory with correct permissions for the user
-RUN mkdir -p /araia && chown -R ${user}:${user} /araia
+# Ensure user owns the isolated application directory
+# Also create /araia so it exists for the volume mount
+RUN chown -R ${user}:${user} /app && mkdir -p /araia && chown -R ${user}:${user} /araia
 
 # Switch to non-root user
 USER ${user}
-WORKDIR /araia
-
-# Move Pixi environment out of the mounted volume to avoid host permission conflicts
-# /home/jnavarro/.pixi will be inside the container's writable filesystem
-ENV PIXI_HOME=/home/${user}/.pixi
-ENV CONDA_PREFIX=/home/${user}/.pixi/envs/default
-ENV PIXI_PROJECT_MANIFEST=/araia/pyproject.toml
-ENV PATH="/home/${user}/.pixi/envs/default/bin:/home/${user}/.pixi/bin:/usr/local/bin:$PATH"
 
 # Copy Pixi manifest and lockfile
 COPY --chown=${user}:${user} pyproject.toml pixi.lock ./
+# Note: we MUST copy src/ here so the dynamic version resolution works during install
 COPY --chown=${user}:${user} src/ ./src/
 
-# Install environment (this will now live in /home/jnavarro/.pixi/envs)
-# We use --manifest-path to be explicit
-RUN pixi install -a --frozen
+# Install environment in /app/.pixi 
+# This is physically isolated from the /araia volume mount, so it won't be hidden
+RUN pixi install 
 
 # Copy rest of the source code
 COPY --chown=${user}:${user} . .
@@ -72,4 +66,5 @@ CMD bash -c "export PATH=$PATH:/usr/local/bin && \
                 ollama pull qwen3 || true; \
              fi; \
              echo 'Starting ClimRRGPT-beta via Pixi on port 8502...'; \
-             pixi run --manifest-path /araia/pyproject.toml streamlit run src/modules/Welcome.py --server.port=8502 --server.address=0.0.0.0"
+             cd /araia && PYTHONPATH=/araia/src pixi run --manifest-path /app/pyproject.toml streamlit run src/modules/Welcome.py --server.port=8502 --server.address=0.0.0.0"
+
