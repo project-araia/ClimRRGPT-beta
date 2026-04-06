@@ -12,36 +12,35 @@ ARG user=jnavarro
 # Set up working directory
 WORKDIR /araia
 
-# Install essential system dependencies and certificates
+# Install manual system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     git \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Pixi binary
-RUN curl -fsSL https://pixi.sh/install.sh | bash
-ENV PATH="/root/.pixi/bin:$PATH"
+# Install Pixi binary globally to /usr/local/bin
+RUN curl -fsSL https://pixi.sh/install.sh | bash \
+    && mv /root/.pixi/bin/pixi /usr/local/bin/pixi
 
 # Create non-root user
 RUN groupadd -g ${gid} ${user} \
     && useradd -m -u ${uid} -g ${gid} -s /bin/bash ${user}
 
-# Install Ollama (binary available for Linux x86_64)
+# Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | bash
 
-# Ensure user owns the application directory and home
-RUN chown -R ${user}:${user} /araia
+# Set up Pixi directory with correct permissions for the user
+RUN mkdir -p /araia && chown -R ${user}:${user} /araia
 
-# Switch to non-root user for Pixi install and runtime
+# Switch to non-root user
 USER ${user}
-ENV PATH="/home/${user}/.pixi/bin:$PATH"
+WORKDIR /araia
 
-# Copy Pixi manifest and lockfile
+# Copy only requirements first for caching
 COPY --chown=${user}:${user} pyproject.toml pixi.lock ./
 
-# Install environment from lockfile
-# Note: Pixi handles Linux-64 specific binaries automatically
+# Install environment
 RUN pixi install
 
 # Copy source code
