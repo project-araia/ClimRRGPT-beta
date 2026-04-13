@@ -46,6 +46,16 @@ COPY --chown=${user}:${user} src/ ./src/
 # This is physically isolated from the /araia volume mount, so it won't be hidden
 RUN pixi install 
 
+# --- SURGICAL PYTORCH INJECTION ---
+# Pixi installs its own CPU-only torch. We delete it and symlink the system (GPU) one.
+# Base image stores torch in /opt/conda/lib/python3.11/site-packages/
+RUN export SITE_PACKAGES=$(pixi run python -c "import site; print(site.getsitepackages()[0])") && \
+    rm -rf ${SITE_PACKAGES}/torch* && \
+    rm -rf ${SITE_PACKAGES}/nvidia* && \
+    ln -s /opt/conda/lib/python3.11/site-packages/torch* ${SITE_PACKAGES}/ && \
+    ln -s /opt/conda/lib/python3.11/site-packages/nvidia* ${SITE_PACKAGES}/
+# ----------------------------------
+
 # Copy rest of the source code
 COPY --chown=${user}:${user} . .
 
@@ -66,5 +76,5 @@ CMD bash -c "export PATH=$PATH:/usr/local/bin && \
                 ollama pull qwen3 || true; \
              fi; \
              echo 'Starting ClimRRGPT-beta via Pixi on port 8502...'; \
-             cd /araia && PYTHONPATH=/araia/src pixi run --manifest-path /app/pyproject.toml streamlit run src/modules/Welcome.py --server.port=8502 --server.address=0.0.0.0"
+             cd /araia && PYTHONPATH=/araia/src:/opt/conda/lib/python3.11/site-packages pixi run --manifest-path /app/pyproject.toml streamlit run src/modules/Welcome.py --server.port=8502 --server.address=0.0.0.0"
 
