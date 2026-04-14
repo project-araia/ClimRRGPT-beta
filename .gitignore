@@ -1,4 +1,5 @@
 # data files
+data/
 temp_images/
 ollama-data/
 **.pkl
