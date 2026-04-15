@@ -1,0 +1,20 @@
+# ClimRRGPT Global Configuration
+
+literature:
+  data_dir: "data"
+  dense_index: "dense_ivfpq.faiss"
+  sparse_index: "sparse_bm25.pkl"
+  manifest: "manifest.json"
+  embedding_model: "Qwen/Qwen3-Embedding-0.6B"
+  dense_weight: 0.5
+  sparse_weight: 0.5
+  dense_top_k: 20
+  sparse_top_k: 20
+  final_k: 10
+
+llm:
+  default_model: "gemma4:e4b"
+  provider: "Local" # "Local", "OpenAI", "ALCF"
+
+data_vis:
+  resilience_dataset: "src/literature/data/data/resilience_dataset_4-1"

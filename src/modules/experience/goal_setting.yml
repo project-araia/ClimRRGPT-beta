@@ -1,4 +1,4 @@
-model: qwen3.5:latest 
+model: gemma4:e4b
 
 profile_not_complete_message: |
   Welcome! It looks like you haven't completed your profile yet.
@@ -30,5 +30,5 @@ goal_saved_message: |
   🎉 Woohoo! Goals locked and loaded! 🚀
 
   You're all set to blaze through your wildfire analysis! 🔥📊
-  
+
   Let's turn those goals into groundbreaking insights! 💡💪

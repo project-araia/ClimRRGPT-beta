@@ -1,12 +1,13 @@
-import os
+from typing import Any
+
 import streamlit as st
 
-from src.utils import load_config
-from src.llms import OpenSourceModels, route_and_respond, get_default_llm
-from src.literature.search import literature_search
-from src.agents.registry import AgentRegistry
 from src.agents.demo_agents import register_demo_agents
 from src.agents.history import ChatHistory
+from src.agents.registry import AgentRegistry
+from src.literature.search import literature_search
+from src.llms import get_default_llm, route_and_respond
+from src.utils import load_config
 
 
 def initialize_session_state(config_path: str):
@@ -19,8 +20,8 @@ def initialize_session_state(config_path: str):
 
     # Build context if demographic info is present but context isn't built yet
     if (
-        "context" not in st.session_state 
-        and "responses" in st.session_state 
+        "context" not in st.session_state
+        and "responses" in st.session_state
         and "selected_datasets" in st.session_state
     ):
         responses = st.session_state.responses
@@ -36,9 +37,13 @@ def initialize_session_state(config_path: str):
             },
         ]
         if "analysis" in st.session_state:
-            st.session_state.context.append({"role": "assistant", "content": st.session_state.analysis})
+            st.session_state.context.append(
+                {"role": "assistant", "content": st.session_state.analysis}
+            )
         if "data_analysis_summary" in st.session_state:
-            st.session_state.context.append({"role": "assistant", "content": st.session_state.data_analysis_summary})
+            st.session_state.context.append(
+                {"role": "assistant", "content": st.session_state.data_analysis_summary}
+            )
 
     # Initialize Multi-Agent Components
     if "agent_registry" not in st.session_state:
@@ -59,10 +64,10 @@ def render_header(config: dict):
         st.write(config["instruction_message"])
 
 
-def handle_search_and_generation(state: st.session_state, get_response_fn):
+def handle_search_and_generation(state: Any, get_response_fn):
     """Handles logic for literature search and the initial summary generation."""
     if "literature_review_summary" in state:
-        return # Skip if already done
+        return  # Skip if already done
 
     state.retrieved_literature = []
     state.references = []
@@ -82,24 +87,28 @@ def handle_search_and_generation(state: st.session_state, get_response_fn):
             state.retrieved_literature.append(retrieved)
             state.references += refs
 
-    state.context.append({
-        "role": "system",
-        "content": f"Here are the reference papers: {state.retrieved_literature}.",
-    })
+    state.context.append(
+        {
+            "role": "system",
+            "content": f"Here are the reference papers: {state.retrieved_literature}.",
+        }
+    )
 
     if st.button("Generate Summary", use_container_width=True):
         messages = [
             {
                 "role": "system",
-                "content": state.config["literature_review_instructions"][0]["content"].format(
-                    retrieve_literature=state.retrieved_literature
-                ),
+                "content": state.config["literature_review_instructions"][0][
+                    "content"
+                ].format(retrieve_literature=state.retrieved_literature),
             }
         ]
-        state.context.append({
-            "role": "user",
-            "content": f"Here are my questions:\\n\\n{[state.questions[i] for i in range(len(state.questions))]}",
-        })
+        state.context.append(
+            {
+                "role": "user",
+                "content": f"Here are my questions:\\n\\n{[state.questions[i] for i in range(len(state.questions))]}",
+            }
+        )
 
         messages = state.context + messages
 
@@ -113,7 +122,7 @@ def handle_search_and_generation(state: st.session_state, get_response_fn):
                 "stop": ["Works Cited\n", "References\n", "Bibliography\n"],
             },
         )
-        
+
         # Clean up citations
         for stop_word in ["Works Cited", "References", "Bibliography"]:
             if stop_word in summary:
@@ -130,7 +139,7 @@ def handle_search_and_generation(state: st.session_state, get_response_fn):
         st.rerun()
 
 
-def render_summary_display(state: st.session_state):
+def render_summary_display(state: Any):
     """Renders the generated summary and its related search results if present."""
     if "literature_review_summary" not in state:
         return
@@ -144,7 +153,7 @@ def render_summary_display(state: st.session_state):
     st.markdown("---")
 
 
-def render_chat_interface(state: st.session_state, get_response_fn):
+def render_chat_interface(state: Any, get_response_fn):
     """Displays chat history and input widget for multi-agent interaction."""
     st.markdown("#### Chat with Literature Review Assistant")
 
@@ -157,7 +166,9 @@ def render_chat_interface(state: st.session_state, get_response_fn):
             st.rerun()
 
     if "literature_review_summary" not in state:
-        st.info("💡 The literature review is still in progress above. You can already start chatting — relevant papers will be retrieved live for each message.")
+        st.info(
+            "💡 The literature review is still in progress above. You can already start chatting — relevant papers will be retrieved live for each message."
+        )
 
     # Show History
     for message in state.qa_messages:
@@ -172,11 +183,15 @@ def render_chat_interface(state: st.session_state, get_response_fn):
     # Chat Input Handler
     if prompt := st.chat_input("How can I help you?"):
         st.chat_message("user").markdown(prompt)
-        
-        state.qa_messages.append({"role": "user", "content": prompt, "agent_name": "default"})
+
+        state.qa_messages.append(
+            {"role": "user", "content": prompt, "agent_name": "default"}
+        )
         state.chat_history.save_message("user", prompt, "default")
-        
-        clean_history = [{"role": m["role"], "content": m["content"]} for m in state.qa_messages[:-1]]
+
+        clean_history = [
+            {"role": m["role"], "content": m["content"]} for m in state.qa_messages[:-1]
+        ]
 
         response, agent_name = route_and_respond(
             prompt=prompt,
@@ -186,7 +201,9 @@ def render_chat_interface(state: st.session_state, get_response_fn):
             get_response_fn=get_response_fn,
         )
 
-        state.qa_messages.append({"role": "assistant", "content": response, "agent_name": agent_name})
+        state.qa_messages.append(
+            {"role": "assistant", "content": response, "agent_name": agent_name}
+        )
         state.chat_history.save_message("assistant", response, agent_name)
         st.rerun()
 
@@ -194,8 +211,8 @@ def render_chat_interface(state: st.session_state, get_response_fn):
 def main():
     """Main application entry point."""
     initialize_session_state("src/modules/experience/literature_review.yml")
-    state = st.session_state
-    
+    state: Any = st.session_state
+
     get_response = get_default_llm(state)
 
     # Pre-flight Check

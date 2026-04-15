@@ -1,12 +1,12 @@
-model: qwen3.5:latest 
+model: gemma4:e4b
 
 welcome_message: |
-  Let's dive into the world of literature reviews! 
+  Let's dive into the world of literature reviews!
 
   Click the **Instructions** expander below to discover how to navigate this exciting data exploration tool!
 
 instruction_message: |
-  Welcome to the Literature Review Assistant! 
+  Welcome to the Literature Review Assistant!
 
   **What you can do here:**
   - Get AI-powered recommendations on the most relevant literature reviews
@@ -34,5 +34,3 @@ literature_review_instructions:
 
       Here is a list of possibly relevant papers:
       {retrieve_literature}
-
-  

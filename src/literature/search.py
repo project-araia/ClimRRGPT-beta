@@ -1,40 +1,46 @@
-import os
 import json
-import numpy as np
-import pickle
-import requests
-from pathlib import Path
-from sentence_transformers import SentenceTransformer
-import faiss
-from rank_bm25 import BM25Okapi
-import re
 import math
-import mmap
-
+import pickle
+import re
 import sys
+from pathlib import Path
+
+import faiss
+import numpy as np
+import requests
+from rank_bm25 import BM25Okapi
+from sentence_transformers import SentenceTransformer
+
+from src.utils import GLOBAL_CONFIG
 
 # Set up paths relative to REPO_ROOT
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+lit_config = GLOBAL_CONFIG.get("literature", {})
+
 # Configuration
-DB_DIR = REPO_ROOT / "data"
-DENSE_PATH = DB_DIR / "dense_ivfpq.faiss"
-SPARSE_PATH = DB_DIR / "sparse_bm25.pkl"
-MANIFEST_PATH = DB_DIR / "manifest.json"
+DB_DIR = REPO_ROOT / lit_config.get("data_dir", "data")
+DENSE_PATH = DB_DIR / lit_config.get("dense_index", "dense_ivfpq.faiss")
+SPARSE_PATH = DB_DIR / lit_config.get("sparse_index", "sparse_bm25.pkl")
+MANIFEST_PATH = DB_DIR / lit_config.get("manifest", "manifest.json")
 
 # Hybrid Search Parameters
-DENSE_WEIGHT = 0.5
-SPARSE_WEIGHT = 0.5
-DENSE_TOP_K = 20
-SPARSE_TOP_K = 20
-FINAL_K = 10
+DENSE_WEIGHT = lit_config.get("dense_weight", 0.5)
+SPARSE_WEIGHT = lit_config.get("sparse_weight", 0.5)
+DENSE_TOP_K = lit_config.get("dense_top_k", 20)
+SPARSE_TOP_K = lit_config.get("sparse_top_k", 20)
+FINAL_K = lit_config.get("final_k", 10)
 
-# Load manifest
-with open(MANIFEST_PATH, "r") as f:
-    manifest = json.load(f)
+# Load manifest with guard
+manifest = {}
+if MANIFEST_PATH.exists():
+    with open(MANIFEST_PATH, "r") as f:
+        manifest = json.load(f)
 
-EMBEDDING_MODEL = manifest.get("embedding_model", "Qwen/Qwen3-Embedding-0.6B")
+EMBEDDING_MODEL = manifest.get(
+    "embedding_model", lit_config.get("embedding_model", "Qwen/Qwen3-Embedding-0.6B")
+)
 
 # Global variables
 _model = None
@@ -73,35 +79,45 @@ def load_resources():
     global _model, _index, _bm25, _chunk_texts, _chunk_metadata
 
     if _model is None:
-        print(f"Loading embedding model: {EMBEDDING_MODEL}...")
-        _model = SentenceTransformer(EMBEDDING_MODEL, device="cpu")
+        try:
+            print(f"Loading embedding model: {EMBEDDING_MODEL}...")
+            _model = SentenceTransformer(EMBEDDING_MODEL, device="cpu")
+        except Exception as e:
+            print(f"Warning: Could not load embedding model {EMBEDDING_MODEL}: {e}")
+            _model = None
 
     if _index is None:
-        print(f"Loading dense index (MMAP): {DENSE_PATH.name}...")
-        # FAISS supports memory mapping for some index types
-        _index = faiss.read_index(
-            str(DENSE_PATH), faiss.IO_FLAG_MMAP | faiss.IO_FLAG_READ_ONLY
-        )
-        _index.nprobe = 32
+        if DENSE_PATH.exists():
+            print(f"Loading dense index (MMAP): {DENSE_PATH.name}...")
+            # FAISS supports memory mapping for some index types
+            _index = faiss.read_index(
+                str(DENSE_PATH), faiss.IO_FLAG_MMAP | faiss.IO_FLAG_READ_ONLY
+            )
+            _index.nprobe = 32
+        else:
+            print(f"Warning: Dense index path {DENSE_PATH} does not exist.")
+            _index = None
 
     if _bm25 is None:
-        print(f"Loading sparse index: {SPARSE_PATH.name}...")
-        # To handle 3GB+ files on limited RAM, we use a buffered read
-        # Note: pickle.load() unfortunately requires significant RAM to reconstruct the object.
-        # If this still fails, we may need to refactor the build process to save data in chunks or use a proper DB.
-        with open(SPARSE_PATH, "rb") as f:
-            # Using a larger buffer for potentially faster reading
-            sparse_payload = pickle.load(f)
+        if SPARSE_PATH.exists():
+            print(f"Loading sparse index: {SPARSE_PATH.name}...")
+            with open(SPARSE_PATH, "rb") as f:
+                sparse_payload = pickle.load(f)
 
-        _token_corpus = sparse_payload.get("token_corpus", [])
-        _chunk_texts = sparse_payload.get("chunk_texts", [])
-        _chunk_metadata = sparse_payload.get("chunk_metadata", []) or [{}] * len(
-            _chunk_texts
-        )
+            _token_corpus = sparse_payload.get("token_corpus", [])
+            _chunk_texts = sparse_payload.get("chunk_texts", [])
+            _chunk_metadata = sparse_payload.get("chunk_metadata", []) or [{}] * len(
+                _chunk_texts
+            )
 
-        print("Initializing BM25 object...")
-        _bm25 = BM25Okapi(_token_corpus)
-        print("Loading complete.")
+            print("Initializing BM25 object...")
+            _bm25 = BM25Okapi(_token_corpus)
+            print("Loading complete.")
+        else:
+            print(f"Warning: Sparse index path {SPARSE_PATH} does not exist.")
+            _bm25 = None
+            _chunk_texts = []
+            _chunk_metadata = []
 
 
 def get_doi_by_title(title):
@@ -130,6 +146,11 @@ def mla_citation(title, doi):
 def search(query, k=FINAL_K):
     load_resources()
 
+    # Assert resources are loaded for mypy
+    assert _model is not None, "Model failed to load"
+    assert _index is not None, "Index failed to load"
+    assert _bm25 is not None, "BM25 failed to load"
+
     query_vec = _model.encode([query], normalize_embeddings=True, convert_to_numpy=True)
     query_vec = np.asarray(query_vec, dtype=np.float32)
 
@@ -156,6 +177,9 @@ def search(query, k=FINAL_K):
 
     candidates = list(set(dense_raw.keys()) | set(sparse_raw.keys()))
     results = []
+
+    assert _chunk_texts is not None, "Texts not loaded"
+    assert _chunk_metadata is not None, "Metadata not loaded"
 
     for idx in candidates:
         h_score = DENSE_WEIGHT * dense_norm.get(

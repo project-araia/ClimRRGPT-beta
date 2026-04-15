@@ -45,7 +45,6 @@ rouge = ">=1.0.1,<2"
 shapely = ">=2.1.2,<3"
 census = ">=0.8.25,<0.9"
 folium = ">=0.20.0,<0.21"
-ollama = ">=0.19.0,<0.20"
 contextily = ">=1.7.0,<2"
 pip = ">=26.0.1,<27"
 ollama-python = ">=0.6.1,<0.7"
@@ -57,3 +56,28 @@ faiss-cpu = ">=1.10.0,<2"
 rank-bm25 = ">=0.2.2,<0.3"
 langchain-ollama = ">=1.0.1,<2"
 docker-compose = ">=5.1.1,<6"
+
+[tool.pixi.environments]
+default = []
+dev = ["dev"]
+
+[tool.pixi.feature.dev.dependencies]
+ruff = ">=0.15.10,<0.16"
+black = ">=26.3.1,<27"
+pytest = ">=9.0.3,<10"
+pytest-mock = ">=3.15.1,<4"
+mypy = ">=1.20.1,<2"
+types-PyYAML = ">=6.0.12.20260408,<7"
+pre-commit = ">=4.5.1,<5"
+types-requests = ">=2.33.0.20260408,<3"
+
+[dependency-groups]
+dev = ["wat"]
+
+[tool.mypy]
+explicit_package_bases = true
+namespace_packages = true
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+show_error_codes = true
