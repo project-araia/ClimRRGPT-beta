@@ -43,11 +43,11 @@ EMBEDDING_MODEL = manifest.get(
 )
 
 # Global variables
-_model = None
-_index = None
-_bm25 = None
-_chunk_texts = None
-_chunk_metadata = None
+_model: SentenceTransformer | None = None
+_index: faiss.Index | None = None
+_bm25: BM25Okapi | None = None
+_chunk_texts: list[str] | None = None
+_chunk_metadata: list[dict] | None = None
 
 
 def tokenize(text: str) -> list[str]:
@@ -84,19 +84,18 @@ def load_resources():
             _model = SentenceTransformer(EMBEDDING_MODEL, device="cpu")
         except Exception as e:
             print(f"Warning: Could not load embedding model {EMBEDDING_MODEL}: {e}")
-            _model = None
+            return "Could not load embedding model. Please contact an administrator."
 
     if _index is None:
         if DENSE_PATH.exists():
             print(f"Loading dense index (MMAP): {DENSE_PATH.name}...")
-            # FAISS supports memory mapping for some index types
             _index = faiss.read_index(
                 str(DENSE_PATH), faiss.IO_FLAG_MMAP | faiss.IO_FLAG_READ_ONLY
             )
             _index.nprobe = 32
         else:
             print(f"Warning: Dense index path {DENSE_PATH} does not exist.")
-            _index = None
+            return "Dense index path does not exist. Please contact an administrator."
 
     if _bm25 is None:
         if SPARSE_PATH.exists():
@@ -115,9 +114,7 @@ def load_resources():
             print("Loading complete.")
         else:
             print(f"Warning: Sparse index path {SPARSE_PATH} does not exist.")
-            _bm25 = None
-            _chunk_texts = []
-            _chunk_metadata = []
+            return "Sparse index path does not exist. Please contact an administrator."
 
 
 def get_doi_by_title(title):
@@ -144,12 +141,15 @@ def mla_citation(title, doi):
 
 
 def search(query, k=FINAL_K):
-    load_resources()
+    err = load_resources()
+    if err:
+        return [], err
 
-    # Assert resources are loaded for mypy
-    assert _model is not None, "Model failed to load"
-    assert _index is not None, "Index failed to load"
-    assert _bm25 is not None, "BM25 failed to load"
+    assert _model is not None, "Model not loaded"
+    assert _index is not None, "Index not loaded"
+    assert _bm25 is not None, "BM25 not loaded"
+    assert _chunk_texts is not None, "Texts not loaded"
+    assert _chunk_metadata is not None, "Metadata not loaded"
 
     query_vec = _model.encode([query], normalize_embeddings=True, convert_to_numpy=True)
     query_vec = np.asarray(query_vec, dtype=np.float32)
@@ -200,7 +200,9 @@ def search(query, k=FINAL_K):
 
 
 def literature_search(query):
-    results = search(query, k=FINAL_K)
+    results, err = search(query, k=FINAL_K)
+    if err:
+        return "", [], err
 
     output_message = ""
     references = []
@@ -220,14 +222,16 @@ def literature_search(query):
             references.append(f"{ref}\n\n")
             seen_titles.add(title)
 
-    return output_message, references
+    return output_message, references, ""
 
 
 if __name__ == "__main__":
     test_query = "coastal flooding"
     print(f"Testing hybrid search for: '{test_query}'")
-    msg, refs = literature_search(test_query)
+    msg, refs, err = literature_search(test_query)
     print("\n--- MESSAGE ---\n")
     print(msg)
     print("\n--- REFERENCES ---\n")
     print("".join(refs))
+    print("\n--- ERROR ---\n")
+    print(err)

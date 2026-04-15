@@ -9,15 +9,15 @@ from __future__ import annotations
 
 from src.agents.registry import Agent, AgentRegistry
 
-
 # ── Foobar agent (proof-of-concept demo) ─────────────────────────────────────
+
 
 def _foobar_handler(message: str, history: list[dict]) -> str:
     return (
         "👋 You mentioned **foobar**! I'm the foobar agent.\n\n"
         "In a real deployment I would perform a specialized foobar task. "
         "For now, here's a placeholder response so you can see routing in action.\n\n"
-        f"_(Your original message: \"{message}\")_"
+        f'_(Your original message: "{message}")_'
     )
 
 
@@ -31,11 +31,16 @@ foobar_agent = Agent(
 
 # ── Literature agent ──────────────────────────────────────────────────────────
 
+
 def _make_literature_handler():
     """Lazily import literature_search to avoid loading the model at module import."""
+
     def handler(message: str, history: list[dict]) -> str:
         from src.literature.search import literature_search
-        retrieved, references = literature_search(message)
+
+        retrieved, references, err = literature_search(message)
+        if err:
+            return err
         if not retrieved.strip():
             return "I searched the literature database but couldn't find closely relevant papers for that query."
         return (
@@ -44,6 +49,7 @@ def _make_literature_handler():
             + "\n\n**References:**\n\n"
             + "".join(references)
         )
+
     return handler
 
 
@@ -68,12 +74,17 @@ literature_agent = Agent(
 
 # ── Deep reasoning agent ──────────────────────────────────────────────────────
 
+
 def _make_deep_agent_handler():
     """Lazily import the deep agent handler."""
+
     def handler(message: str, history: list[dict]) -> str:
         from src.agents.deep_agent import deep_agent_handler
+
         return deep_agent_handler(message, history)
+
     return handler
+
 
 deep_reasoning_agent = Agent(
     name="deep_reasoning_agent",
@@ -91,6 +102,7 @@ deep_reasoning_agent = Agent(
 )
 
 # ── Registration helper ───────────────────────────────────────────────────────
+
 
 def register_demo_agents(registry: AgentRegistry) -> None:
     """Register all demo agents into the given registry."""

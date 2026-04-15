@@ -81,7 +81,10 @@ def handle_search_and_generation(state: Any, get_response_fn):
     with st.spinner("Loading. Please do not click any buttons or refresh the page."):
         for i, question in enumerate(state.questions):
             st.write(f"**{question}**")
-            retrieved, refs = literature_search(question)
+            retrieved, refs, err = literature_search(question)
+            if err:
+                st.error(err)
+                return
             with st.expander("Show Literature Search Results"):
                 st.write(retrieved)
             state.retrieved_literature.append(retrieved)
