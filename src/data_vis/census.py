@@ -1,11 +1,12 @@
-import streamlit as st
 import folium
-from streamlit_folium import st_folium
 import geopandas as gpd
 import pandas as pd
-from census import Census
-from src.utils import load_config
+import streamlit as st
 from branca.colormap import linear
+from census import Census
+from streamlit_folium import st_folium
+
+from src.utils import load_config
 
 
 def safe_sum(series):
@@ -14,11 +15,13 @@ def safe_sum(series):
         return None
     return series.sum(skipna=True)
 
+
 def safe_mean(series):
     # if the entire series is null, return null
     if series.isnull().all():
         return None
     return series.mean(skipna=True)
+
 
 def format_value(value, format_spec):
     if pd.isna(value):
@@ -27,50 +30,86 @@ def format_value(value, format_spec):
         return format_spec.format(value)
     except ValueError:
         return str(value)
-    
+
+
 def safe_rate(numerator, denominator):
     if numerator is None or denominator is None or denominator == 0:
         return None
     return numerator / denominator
 
+
 def sum_rows_ignore_na(df, columns):
     return df[columns].sum(axis=1, skipna=True)
 
+
 @st.cache_data
 def get_state_bg(state_code):
-    return gpd.read_file(f"https://www2.census.gov/geo/tiger/TIGER2022/BG/tl_2022_{state_code}_bg.zip")
+    return gpd.read_file(
+        f"https://www2.census.gov/geo/tiger/TIGER2022/BG/tl_2022_{state_code}_bg.zip"
+    )
+
 
 @st.cache_data
 def get_us_states():
-    return gpd.read_file(f"https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip")
+    return gpd.read_file(
+        "https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip"
+    )
+
 
 def analyze_census_data(cross_model):
     st.title("Census Data")
-    st.write("This analysis, derived from the 2022 American Community Survey 5-Year Data, focuses on factors relevant to wildfire risk and infrastructure resilience. It includes population demographics, housing characteristics, economic indicators, and infrastructure data at the census block group level. You can view summary statistics, visualize data on a map, and get AI-generated insights about the region's characteristics. Use the dropdown menu to select different metrics and examine patterns across block groups.")
+    st.write(
+        "This analysis, derived from the 2022 American Community Survey 5-Year Data, "
+        "focuses on factors relevant to wildfire risk and infrastructure resilience. It "
+        "includes population demographics, housing characteristics, economic indicators, "
+        "and infrastructure data at the census block group level. You can view summary "
+        "statistics, visualize data on a map, and get AI-generated insights about the "
+        "region's characteristics. Use the dropdown menu to select different metrics "
+        "and examine patterns across block groups."
+    )
     c = Census("93c3297165ad8b5b6c81e0ed9e2e44a38e56224f")
 
     # Get all state-level census tracts that cross_model is intersecting
     all_states = get_us_states()
     all_states = all_states.to_crs(crs=cross_model.crs)
-    intersecting_states = gpd.sjoin(all_states, cross_model, how="inner", predicate='intersects')
-    state_codes = intersecting_states['STATEFP'].unique()
+    intersecting_states = gpd.sjoin(
+        all_states, cross_model, how="inner", predicate="intersects"
+    )
+    state_codes = intersecting_states["STATEFP"].unique()
 
     # Initialize an empty list to store dataframes for each state
     state_dfs = []
 
     acs5_fields = (
-        'B01003_001E',  # Total population
-        'B25001_001E',  # Total housing units
-        'B19013_001E',  # Median household income
-        'B25024_002E', 'B25024_003E',  # 1-unit detached and attached structures
-        'B25034_010E', 'B25034_011E',  # Structures built 2010 or later
-        'B25040_002E', 'B25040_003E', 'B25040_004E',  # House heating fuel (gas, electricity, fuel oil)
-        'B01001_020E', 'B01001_021E', 'B01001_022E', 'B01001_023E', 'B01001_024E', 'B01001_025E',  # Population 65 years and over
-        'B18101_004E', 'B18101_007E', 'B18101_010E', 'B18101_023E', 'B18101_026E', 'B18101_029E',  # Disability status for 65 years and over
-        'B16004_001E', 'B16004_003E',  # English speaking ability
-        'B08201_002E',  # No vehicle available
-        'B28002_004E', 'B28002_012E',  # Broadband internet and cellular data plan
-        'C17002_002E', 'C17002_003E'  # Poverty count
+        "B01003_001E",  # Total population
+        "B25001_001E",  # Total housing units
+        "B19013_001E",  # Median household income
+        "B25024_002E",
+        "B25024_003E",  # 1-unit detached and attached structures
+        "B25034_010E",
+        "B25034_011E",  # Structures built 2010 or later
+        "B25040_002E",
+        "B25040_003E",
+        "B25040_004E",  # House heating fuel (gas, electricity, fuel oil)
+        "B01001_020E",
+        "B01001_021E",
+        "B01001_022E",
+        "B01001_023E",
+        "B01001_024E",
+        "B01001_025E",  # Population 65 years and over
+        "B18101_004E",
+        "B18101_007E",
+        "B18101_010E",
+        "B18101_023E",
+        "B18101_026E",
+        "B18101_029E",  # Disability status for 65 years and over
+        "B16004_001E",
+        "B16004_003E",  # English speaking ability
+        "B08201_002E",  # No vehicle available
+        "B28002_004E",
+        "B28002_012E",  # Broadband internet and cellular data plan
+        "C17002_002E",
+        "C17002_003E",  # Poverty count
     )
 
     for state_code in state_codes:
@@ -78,63 +117,101 @@ def analyze_census_data(cross_model):
         state_tract = get_state_bg(state_code)
         state_tract = state_tract.to_crs(crs=cross_model.crs)
         state_tract["GEOID"] = state_tract["GEOID"].astype(str)
-        
+
         # Intersect with the cross_model
-        state_tract = gpd.sjoin(state_tract, cross_model, how="inner", predicate='intersects')
-        state_tract = state_tract[['GEOID', 'geometry']].drop_duplicates()
+        state_tract = gpd.sjoin(
+            state_tract, cross_model, how="inner", predicate="intersects"
+        )
+        state_tract = state_tract[["GEOID", "geometry"]].drop_duplicates()
 
         # Extract all blockgroup level acs5 data for the current state
         block_groups = c.acs5.state_county_blockgroup(
-            fields = acs5_fields,
-            state_fips = state_code,
-            county_fips = '*',
-            tract = '*',
-            blockgroup = "*",
-            year = 2022
+            fields=acs5_fields,
+            state_fips=state_code,
+            county_fips="*",
+            tract="*",
+            blockgroup="*",
+            year=2022,
         )
         bg_df = pd.DataFrame(block_groups)
 
-        bg_df["GEOID"] = bg_df["state"] + bg_df["county"] + bg_df["tract"] + bg_df["block group"]
+        bg_df["GEOID"] = (
+            bg_df["state"] + bg_df["county"] + bg_df["tract"] + bg_df["block group"]
+        )
         bg_df["GEOID"] = bg_df["GEOID"].astype(str)
-        bg_df = state_tract.merge(bg_df, on = "GEOID")
+        bg_df = state_tract.merge(bg_df, on="GEOID")
 
         state_dfs.append(bg_df)
 
     # Combine all state dataframes
     combined_bg_df = pd.concat(state_dfs, ignore_index=True)
-    combined_bg_df['poverty_count'] = combined_bg_df['C17002_002E'] + combined_bg_df['C17002_003E'] 
-    combined_bg_df['poverty_rate'] = combined_bg_df['poverty_count'] / combined_bg_df['B01003_001E']
-    combined_bg_df['elderly_population'] = combined_bg_df['B01001_020E'] + combined_bg_df['B01001_021E'] + combined_bg_df['B01001_022E'] + combined_bg_df['B01001_023E'] + combined_bg_df['B01001_024E'] + combined_bg_df['B01001_025E']
-    combined_bg_df['elderly_population_rate'] = combined_bg_df['elderly_population'] / combined_bg_df['B01003_001E']
-    combined_bg_df['single_unit_housing_rate'] = (combined_bg_df['B25024_002E'] + combined_bg_df['B25024_003E']) / combined_bg_df['B25001_001E']
-    combined_bg_df['new_housing_rate'] = (combined_bg_df['B25034_010E'] + combined_bg_df['B25034_011E']) / combined_bg_df['B25001_001E']
-    combined_bg_df['no_vehicle_rate'] = combined_bg_df['B08201_002E'] / combined_bg_df['B25001_001E']
-    combined_bg_df['internet_access_rate'] = (combined_bg_df['B28002_004E'] + combined_bg_df['B28002_012E']) / combined_bg_df['B25001_001E']
-
+    combined_bg_df["poverty_count"] = (
+        combined_bg_df["C17002_002E"] + combined_bg_df["C17002_003E"]
+    )
+    combined_bg_df["poverty_rate"] = (
+        combined_bg_df["poverty_count"] / combined_bg_df["B01003_001E"]
+    )
+    combined_bg_df["elderly_population"] = (
+        combined_bg_df["B01001_020E"]
+        + combined_bg_df["B01001_021E"]
+        + combined_bg_df["B01001_022E"]
+        + combined_bg_df["B01001_023E"]
+        + combined_bg_df["B01001_024E"]
+        + combined_bg_df["B01001_025E"]
+    )
+    combined_bg_df["elderly_population_rate"] = (
+        combined_bg_df["elderly_population"] / combined_bg_df["B01003_001E"]
+    )
+    combined_bg_df["single_unit_housing_rate"] = (
+        combined_bg_df["B25024_002E"] + combined_bg_df["B25024_003E"]
+    ) / combined_bg_df["B25001_001E"]
+    combined_bg_df["new_housing_rate"] = (
+        combined_bg_df["B25034_010E"] + combined_bg_df["B25034_011E"]
+    ) / combined_bg_df["B25001_001E"]
+    combined_bg_df["no_vehicle_rate"] = (
+        combined_bg_df["B08201_002E"] / combined_bg_df["B25001_001E"]
+    )
+    combined_bg_df["internet_access_rate"] = (
+        combined_bg_df["B28002_004E"] + combined_bg_df["B28002_012E"]
+    ) / combined_bg_df["B25001_001E"]
 
     # combined_bg_df['B19013_001E'] is null if set to -666666666
-    combined_bg_df['B19013_001E'] = combined_bg_df['B19013_001E'].replace(-666666666, pd.NA)
-    
+    combined_bg_df["B19013_001E"] = combined_bg_df["B19013_001E"].replace(
+        -666666666, pd.NA
+    )
+
     st.write("## Key Metrics")
-    metrics_df = combined_bg_df[['GEOID', 'B01003_001E', 'poverty_count', 'poverty_rate', 'B25001_001E', 'elderly_population_rate', 
-                                    'single_unit_housing_rate', 'new_housing_rate', 
-                                    'no_vehicle_rate', 'internet_access_rate', 'B19013_001E']]
-    
+    metrics_df = combined_bg_df[
+        [
+            "GEOID",
+            "B01003_001E",
+            "poverty_count",
+            "poverty_rate",
+            "B25001_001E",
+            "elderly_population_rate",
+            "single_unit_housing_rate",
+            "new_housing_rate",
+            "no_vehicle_rate",
+            "internet_access_rate",
+            "B19013_001E",
+        ]
+    ]
+
     rename_dict = {
-        'B01003_001E': 'Total Population',
-        'poverty_count': 'Poverty Count',
-        'poverty_rate': 'Poverty Rate',
-        'B25001_001E': 'Total Housing Units',
-        'elderly_population_rate': 'Elderly Population Rate',
-        'single_unit_housing_rate': 'Single Unit Housing Rate',
-        'new_housing_rate': 'New Housing Rate',
-        'no_vehicle_rate': 'No Vehicle Rate',
-        'internet_access_rate': 'Internet Access Rate',
-        'B19013_001E': 'Median Household Income'
+        "B01003_001E": "Total Population",
+        "poverty_count": "Poverty Count",
+        "poverty_rate": "Poverty Rate",
+        "B25001_001E": "Total Housing Units",
+        "elderly_population_rate": "Elderly Population Rate",
+        "single_unit_housing_rate": "Single Unit Housing Rate",
+        "new_housing_rate": "New Housing Rate",
+        "no_vehicle_rate": "No Vehicle Rate",
+        "internet_access_rate": "Internet Access Rate",
+        "B19013_001E": "Median Household Income",
     }
 
     metrics_df = metrics_df.rename(columns=rename_dict)
-    
+
     st.dataframe(metrics_df, hide_index=True)
 
     col1, col2, col3 = st.columns(3)
@@ -142,23 +219,44 @@ def analyze_census_data(cross_model):
         # choose a column to display
         options = metrics_df.columns
         # remove the GEOID and any columns with entirely null values
-        options = [option for option in options if option != 'GEOID' and not metrics_df[option].isnull().all()]
-        metrics_df_with_geometry = combined_bg_df[['GEOID', 'geometry']].merge(metrics_df, on='GEOID')
+        options = [
+            option
+            for option in options
+            if option != "GEOID" and not metrics_df[option].isnull().all()
+        ]
+        metrics_df_with_geometry = combined_bg_df[["GEOID", "geometry"]].merge(
+            metrics_df, on="GEOID"
+        )
         selected_column = st.selectbox("Select a column to display", options)
         st.write(f"## {selected_column}")
-        m6 = folium.Map(location=st.session_state.center, zoom_start=st.session_state.zoom)
+        m6 = folium.Map(
+            location=st.session_state.center, zoom_start=st.session_state.zoom
+        )
         # Rest of the function remains the same, just replace bg_df with combined_bg_df
-        color_scale = linear.YlOrRd_09.scale(metrics_df[selected_column].min(skipna=True), metrics_df[selected_column].max(skipna=True))
+        color_scale = getattr(linear, "YlOrRd_09").scale(
+            metrics_df[selected_column].min(skipna=True),
+            metrics_df[selected_column].max(skipna=True),
+        )
 
         m6.add_child(
             # color based on selected column
-            folium.features.GeoJson(metrics_df_with_geometry, tooltip = folium.features.GeoJsonTooltip(fields=['GEOID', selected_column], aliases=['GEOID', selected_column]),
-            style_function=lambda x: {
-                'fillColor': color_scale(metrics_df[metrics_df['GEOID'] == x['properties']['GEOID']][selected_column].values[0]),
-                'color': 'black',  # Boundary color
-                'weight': 1,  # Boundary weight
-                'fillOpacity': 0.7
-            },)
+            folium.features.GeoJson(
+                metrics_df_with_geometry,
+                tooltip=folium.features.GeoJsonTooltip(
+                    fields=["GEOID", selected_column],
+                    aliases=["GEOID", selected_column],
+                ),
+                style_function=lambda x: {
+                    "fillColor": color_scale(
+                        metrics_df[metrics_df["GEOID"] == x["properties"]["GEOID"]][
+                            selected_column
+                        ].values[0]
+                    ),
+                    "color": "black",  # Boundary color
+                    "weight": 1,  # Boundary weight
+                    "fillOpacity": 0.7,
+                },
+            )
         )
         # add legend
         m6.add_child(color_scale)
@@ -167,16 +265,22 @@ def analyze_census_data(cross_model):
         st.write("**Regional Summary**")
 
         # Check for existence of columns and calculate sums
-        total_population = safe_sum(combined_bg_df['B01003_001E'])
-        total_housing_units = safe_sum(combined_bg_df['B25001_001E'])
-        poverty_count = safe_sum(combined_bg_df['poverty_count'])
-        elderly_population = safe_sum(combined_bg_df['elderly_population'])
+        total_population = safe_sum(combined_bg_df["B01003_001E"])
+        total_housing_units = safe_sum(combined_bg_df["B25001_001E"])
+        poverty_count = safe_sum(combined_bg_df["poverty_count"])
+        elderly_population = safe_sum(combined_bg_df["elderly_population"])
 
         # Sum rows for multi-column calculations
-        single_unit_housing = safe_sum(sum_rows_ignore_na(combined_bg_df, ['B25024_002E', 'B25024_003E']))
-        new_housing = safe_sum(sum_rows_ignore_na(combined_bg_df, ['B25034_010E', 'B25034_011E']))
-        no_vehicle = safe_sum(combined_bg_df['B08201_002E'])
-        internet_access = safe_sum(sum_rows_ignore_na(combined_bg_df, ['B28002_004E', 'B28002_012E']))
+        single_unit_housing = safe_sum(
+            sum_rows_ignore_na(combined_bg_df, ["B25024_002E", "B25024_003E"])
+        )
+        new_housing = safe_sum(
+            sum_rows_ignore_na(combined_bg_df, ["B25034_010E", "B25034_011E"])
+        )
+        no_vehicle = safe_sum(combined_bg_df["B08201_002E"])
+        internet_access = safe_sum(
+            sum_rows_ignore_na(combined_bg_df, ["B28002_004E", "B28002_012E"])
+        )
 
         # Calculate rates
         total_poverty_rate = safe_rate(poverty_count, total_population)
@@ -187,24 +291,53 @@ def analyze_census_data(cross_model):
         internet_access_rate = safe_rate(internet_access, total_housing_units)
 
         # Calculate median household income
-        median_household_income = combined_bg_df['B19013_001E'].median() if 'B19013_001E' in combined_bg_df.columns else None
-
+        median_household_income = (
+            combined_bg_df["B19013_001E"].median()
+            if "B19013_001E" in combined_bg_df.columns
+            else None
+        )
 
         st.write(f"Total Population: {format_value(total_population, '{:,}')}")
         st.write(f"Total Housing Units: {format_value(total_housing_units, '{:,}')}")
-        st.write(f"Median Household Income: {format_value(median_household_income, '${:,.2f}')}")
+        st.write(
+            f"Median Household Income: {format_value(median_household_income, '${:,.2f}')}"
+        )
         st.write(f"Total Poverty Rate: {format_value(total_poverty_rate, '{:.2%}')}")
-        st.write(f"Elderly Population Rate: {format_value(elderly_population_rate, '{:.2%}')}")
-        st.write(f"Single Unit Housing Rate: {format_value(single_unit_housing_rate, '{:.2%}')}")
-        st.write(f"New Housing Rate (built 2010 or later): {format_value(new_housing_rate, '{:.2%}')}")
-        st.write(f"No Vehicle Available Rate: {format_value(no_vehicle_rate, '{:.2%}')}")
-        st.write(f"Internet Access Rate: {format_value(internet_access_rate, '{:.2%}')}")
+        st.write(
+            f"Elderly Population Rate: {format_value(elderly_population_rate, '{:.2%}')}"
+        )
+        st.write(
+            f"Single Unit Housing Rate: {format_value(single_unit_housing_rate, '{:.2%}')}"
+        )
+        st.write(
+            f"New Housing Rate (built 2010 or later): {format_value(new_housing_rate, '{:.2%}')}"
+        )
+        st.write(
+            f"No Vehicle Available Rate: {format_value(no_vehicle_rate, '{:.2%}')}"
+        )
+        st.write(
+            f"Internet Access Rate: {format_value(internet_access_rate, '{:.2%}')}"
+        )
 
         # Display missing data information
-        missing_data = combined_bg_df[['B01003_001E', 'B25001_001E', 'B19013_001E', 'elderly_population_rate', 
-                                    'single_unit_housing_rate', 'new_housing_rate', 'no_vehicle_rate', 'internet_access_rate']].isnull().sum()
+        missing_data = (
+            combined_bg_df[
+                [
+                    "B01003_001E",
+                    "B25001_001E",
+                    "B19013_001E",
+                    "elderly_population_rate",
+                    "single_unit_housing_rate",
+                    "new_housing_rate",
+                    "no_vehicle_rate",
+                    "internet_access_rate",
+                ]
+            ]
+            .isnull()
+            .sum()
+        )
         missing_data.rename(index=rename_dict, inplace=True)
-        missing_data.columns = ['', 'Missing Data Count']
+        missing_data.columns = ["", "Missing Data Count"]
         if missing_data.sum() > 0:
             st.write("**Missing Data Information**")
             st.write(missing_data[missing_data > 0])
@@ -212,7 +345,7 @@ def analyze_census_data(cross_model):
     prompt_config = load_config("./src/data_vis/census.yml")
 
     # Format the prompt template with the actual values
-    prompt = prompt_config['prompt'].format(
+    prompt = prompt_config["prompt"].format(
         total_population=format_value(total_population, "{:,}"),
         total_housing_units=format_value(total_housing_units, "{:,}"),
         median_household_income=format_value(median_household_income, "${:,.2f}"),
@@ -221,11 +354,14 @@ def analyze_census_data(cross_model):
         single_unit_housing_rate=format_value(single_unit_housing_rate, "{:.2%}"),
         new_housing_rate=format_value(new_housing_rate, "{:.2%}"),
         no_vehicle_rate=format_value(no_vehicle_rate, "{:.2%}"),
-        internet_access_rate=format_value(internet_access_rate, "{:.2%}")
+        internet_access_rate=format_value(internet_access_rate, "{:.2%}"),
     )
 
     messages = [
-        {"role": "system", "content": "You are a helpful assistant! Provide some insights from the census data."},
+        {
+            "role": "system",
+            "content": "You are a helpful assistant! Provide some insights from the census data.",
+        },
         {"role": "user", "content": prompt},
     ]
 

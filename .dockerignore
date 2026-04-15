@@ -1,0 +1,16 @@
+.git
+.pixi
+__pycache__
+climrrgpt.egg-info
+chat_history.db
+image.ipynb
+.DS_Store
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+ollama-data/
+temp_images/

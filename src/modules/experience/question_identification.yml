@@ -1,4 +1,4 @@
-model: qwen3
+model: gemma4:e4b
 
 profile_not_complete_message: |
   Welcome! It looks like you haven't completed your profile yet.
@@ -14,7 +14,7 @@ datasets_not_selected_message: |
 welcome_message: |
   Welcome to ClimRRGPT.
 
-  Before setting your goals, please identify two specific questions that you would like to explore in the scientific literature. 
+  Before setting your goals, please identify two specific questions that you would like to explore in the scientific literature.
 
   These questions will help guide your inquiry and ensure that your exploration with ClimRRGPT is focused and meaningful.
 

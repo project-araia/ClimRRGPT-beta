@@ -7,12 +7,12 @@ Install [Ollama](https://github.com/ollama/ollama).
 
 Once you have installed Ollama, you can run the following command to install Llama 3 language model:
 ```
-ollama run llama3.1:8b-instruct-q4_0
+ollama run gemma4:e4b
 ```
 
-We use Python 3.11.6 and [Poetry](https://python-poetry.org/) to manage dependencies. 
+We use Python 3.11.6 and [Poetry](https://python-poetry.org/) to manage dependencies.
 
-We recommend using [pyenv](https://github.com/pyenv/pyenv) to manage your python versions. To switch to Python 3.11.6, run 
+We recommend using [pyenv](https://github.com/pyenv/pyenv) to manage your python versions. To switch to Python 3.11.6, run
 ```
 pyenv install 3.11.6
 pyenv local 3.11.6
@@ -37,7 +37,7 @@ model=<your model name  # e.g. gpt-4-1106-preview>
 ```
 Please check [OpenAI Model Pricing](https://openai.com/pricing) before choosing a model.
 
-Add ``src`` to your path by 
+Add ``src`` to your path by
 ```
 export PYTHONPATH="${PYTHONPATH}:src/"
 ```

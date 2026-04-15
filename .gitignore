@@ -2,6 +2,7 @@
 data/
 temp_images/
 ollama-data/
+**.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -168,3 +169,6 @@ cython_debug/
 myenv/
 src/evaluation/__pycache__/
 src/evaluation/api_keys/
+# pixi environments
+.pixi/*
+!.pixi/config.toml

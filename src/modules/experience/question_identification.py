@@ -2,10 +2,11 @@ import streamlit as st
 from src.utils import load_config, stream_static_text
 from src.llms import OpenSourceModels
 from copy import deepcopy
-from st_pages import add_page_title
+import matplotlib.font_manager as fm
+import os
 import re
 
-add_page_title(initial_sidebar_state="collapsed")
+
 
 st.session_state.config = load_config("src/modules/experience/question_identification.yml")
 available_datasets = load_config("./src/modules/experience/dataset_description.yml")['available_datasets']

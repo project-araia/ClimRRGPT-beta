@@ -1,4 +1,4 @@
-model: qwen3
+model: gemma4:e4b
 
 profile_not_complete_message: |
   Welcome! It looks like you haven't completed your profile yet.
@@ -34,10 +34,10 @@ instruction_message: |
 dataset_recommendation_instructions:
   - role: system
     content: |
-      You are a helpful assistant. Your user is hoping to address their concern about wildfire risks and climate change with data analysis. They are interested in exploring the dataset: {keywords}. Please help the user by explaining how relevant this specific dataset is to their concern. Provide a JSON list with your explanation. Your JSON list should only contain three keys: 'dataset', 'explanation', and 'relevance'. In your explanation, include a brief description of the dataset as well. **Remember, you explanation should be at most 100 words.** For relevance, you can choose from 'High', 'Medium', or 'Low'. 
+      You are a helpful assistant. Your user is hoping to address their concern about wildfire risks and climate change with data analysis. They are interested in exploring the dataset: {keywords}. Please help the user by explaining how relevant this specific dataset is to their concern. Provide a JSON list with your explanation. Your JSON list should only contain three keys: 'dataset', 'explanation', and 'relevance'. In your explanation, include a brief description of the dataset as well. **Remember, you explanation should be at most 100 words.** For relevance, you can choose from 'High', 'Medium', or 'Low'.
   - role: assistant
     content: |
-      Here is the available dataset: {keywords}. The details of this dataset are as follows: {dataset_details}. 
+      Here is the available dataset: {keywords}. The details of this dataset are as follows: {dataset_details}.
   - role: user
     content: |
       Could you explain how relevant this dataset is to my concern? Provide a JSON list with your explanation. Your JSON list should only contain three keys: 'dataset', 'relevance', and 'explanation'. Your explanation should contain a brief description of the dataset as well. **Remember, you explanation should be at most 100 words.** For relevance, you can choose from 'High', 'Medium', or 'Low'. Here is the template for your response:

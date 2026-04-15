@@ -1,4 +1,4 @@
-model: qwen3
+model: gemma4:e4b
 vision_model: llava
 coding_model: codegemma:instruct
 

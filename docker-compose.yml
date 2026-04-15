@@ -1,24 +1,31 @@
 version: '3.8'
 
 services:
-  callm:
+  araia:
     build:
       context: .
       args:
         uid: 1000
         gid: 1000
-        user: "${USER}"
-    container_name: callm-container
+        user: "${USER:-jnavarro}"
+    container_name: araia-container
     ports:
-      - "8501:8501"      # Streamlit
-      - "11435:11434"    # Ollama (optional)
+      - "8502:8502"      # Streamlit
+      - "11435:11434"    # Ollama
     volumes:
-      - .:/callm         # Mount working dir
-      - ./ollama-data:/home/${USER}/.ollama
+      - .:/araia         # Mount working dir
+      - ./ollama-data:/home/${USER:-jnavarro}/.ollama
     environment:
-      - PYTHONPATH=${PYTHONPATH}:src/
+      - PYTHONPATH=src/
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - model=gpt-4o
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     stdin_open: true
     tty: true
 

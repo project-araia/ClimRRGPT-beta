@@ -1,0 +1,64 @@
+[[pages]]
+path = "experience/welcome_page.py"
+name = "Welcome"
+icon = "🔥"
+
+[[pages]]
+path = "experience/profile.py"
+name = "Profile"
+icon = "📚"
+
+[[pages]]
+name = "Deliverables"
+icon = "📝"
+is_section = true
+
+[[pages]]
+path = "experience/dataset_recommendations.py"
+name = "Dataset Recommendations"
+icon = "📈"
+
+[[pages]]
+path = "experience/question_identification.py"
+name = "Question Identification"
+icon = "🎯"
+
+[[pages]]
+name = "Resources"
+icon = "🌐"
+is_section = true
+
+[[pages]]
+path = "experience/available_datasets.py"
+name = "Available Datasets"
+icon = "📈"
+
+[[pages]]
+name = "Analysis"
+icon = "🔍"
+is_section = true
+
+[[pages]]
+path = "experience/data_visualization.py"
+name = "Data Visualization"
+icon = "📈"
+
+[[pages]]
+path = "experience/literature_review_demo.py"
+name = "Literature Review Demo"
+icon = "🎯"
+
+[[pages]]
+path = "experience/literature_review.py"
+name = "Literature Review"
+icon = "📚"
+
+[[pages]]
+name = "Settings"
+icon = "⚙️"
+is_section = true
+
+[[pages]]
+path = "modelpicker.py"
+name = "Model Picker"
+icon = "🤖"
